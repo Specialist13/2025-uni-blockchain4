@@ -14,16 +14,8 @@ This C2C marketplace coordinates a secure, multi-party transaction across distin
 - The seller submits product information (title, description, price, images) to the marketplace contract
 - This is the entry point for any item to be sold on the platform
 
-**Step 2: Marketplace requests verification**
-- The marketplace contract forwards the listing details to the service provider for validation
-- This ensures quality control and prevents fraudulent listings
-
-**Step 3: Service provider validates seller credentials and product details**
-- The service provider checks seller reputation, account status, and product compliance
-- May include automated checks and manual review for sensitive categories
-
-**Step 4: Product becomes visible on marketplace**
-- Once verified, the marketplace contract makes the product searchable and visible to buyers
+**Step 2: Product becomes visible on marketplace**
+- The marketplace contract makes the product immediately searchable and visible to buyers
 - Seller receives confirmation that their listing is live
 
 ---
@@ -31,24 +23,32 @@ This C2C marketplace coordinates a secure, multi-party transaction across distin
 ![Phase 2 Sequence](docs/2_phase_sequence_diagram.png)
 ## Phase 2: Purchase & Payment
 
-**Step 5: Buyer browses marketplace and finds product**
+**Step 3: Buyer browses marketplace and finds product**
 - Buyer searches or browses the marketplace contract to discover products
 - Views product details, seller ratings, and shipping information
 
-**Step 6: Buyer commits to purchase**
+**Step 4: Buyer commits to purchase**
 - Buyer clicks "Buy Now" or similar action to initiate the purchase process
 - This creates a pending order in the marketplace contract
 
-**Step 7: Marketplace creates escrow for secure payment**
+**Step 5: Marketplace creates escrow for secure payment**
 - The marketplace contract instantiates an escrow contract for this specific transaction
 - Escrow acts as a neutral third party holding funds until delivery confirmation
 
-**Step 8: Buyer deposits payment into escrow (not to seller directly)**
+**Step 6: Buyer deposits payment into escrow**
 - Buyer transfers payment to the escrow contract, not directly to the seller
 - This protects both parties - buyer gets refund protection, seller gets payment guarantee
 
+**Step 7: Escrow deducts courier fee**
+- The escrow contract immediately deducts the courier fee from the deposited payment
+- This ensures courier service is prepaid before shipping begins
+
+**Step 8: Courier contract confirms fee received**
+- Courier contract acknowledges receipt of the courier fee
+- Courier service is now financially guaranteed for this shipment
+
 **Step 9: Escrow confirms funds are secured**
-- The escrow contract verifies the payment has been received and locked
+- The escrow contract verifies the payment has been received and allocated
 - Buyer receives confirmation that their payment is safely held
 
 **Step 10: Escrow notifies marketplace of successful payment**
@@ -92,13 +92,12 @@ This C2C marketplace coordinates a secure, multi-party transaction across distin
 - Status changes from "preparing" to "in transit"
 - Tracking information becomes available
 
-**Step 19: Buyer receives shipment notification**
+**Step 19: Buyer receives notification about shipment**
 - Marketplace notifies buyer that item has been shipped
 - Includes tracking number and estimated delivery date
 
 ---
 
-![Phase 4 Sequence](docs/4_phase_sequence_diagram.png)
 ## Phase 4: Delivery
 
 **Step 20: Courier arrives at buyer location**
@@ -123,7 +122,6 @@ This C2C marketplace coordinates a secure, multi-party transaction across distin
 
 ---
 
-![Phase 5 Sequence](docs/5_phase_sequence_diagram.png)
 ## Phase 5: Completion & Payment Release
 
 **Step 25: Buyer confirms item quality and satisfaction**
@@ -156,44 +154,22 @@ This C2C marketplace coordinates a secure, multi-party transaction across distin
 
 ---
 
-![Phase 6 Sequence](docs/6_phase_sequence_diagram.png)
-## Optional: Dispute Resolution Path
+## Key Features
 
-**Alternative Step A: Buyer raises dispute**
-- If buyer is unsatisfied, they can raise a dispute before confirming receipt
-- Common reasons: item not as described, damaged, wrong item, not received
-
-**Alternative Step B: Marketplace escalates for review**
-- Marketplace contract forwards the dispute to the service provider
-- Dispute enters formal resolution process
-
-**Alternative Step C: Service provider requests information from seller**
-- Service provider asks seller for their side of the story
-- May request proof of shipment, product details, or other evidence
-
-**Alternative Step D: Service provider requests evidence from buyer**
-- Buyer asked to provide photos, descriptions, or other proof
-- Both parties given fair opportunity to present their case
-
-**Alternative Step E: Service provider makes resolution decision**
-- Based on evidence and policies, service provider decides outcome
-- Decision could be full refund, partial refund, or payment to seller
-
-**Alternative Step F: Marketplace executes resolution**
-- Marketplace contract receives the decision and instructs escrow accordingly
-- Resolution is implemented automatically
-
-**Alternative Step G: Escrow executes refund or payment**
-- Escrow contract releases funds according to the resolution decision
-- Could be full/partial refund to buyer or payment to seller
-- Transaction is closed with documented resolution
+1. **Escrow Protection**: Payment held by neutral third party until delivery confirmed
+2. **Prepaid Courier Fee**: Courier fee deducted upfront to ensure shipping service is guaranteed
+3. **Tracking Integration**: Courier contract provides transparent shipping status updates
+4. **Multi-party Validation**: No single party can unilaterally control the transaction flow
+5. **Automated Payment Distribution**: Escrow automatically handles fee deductions and fund transfers
 
 ---
 
-## Key Security Features
+## Transaction Flow Summary
 
-1. **Escrow Protection**: Payment held by neutral third party until delivery confirmed
-2. **Verification System**: Service provider validates sellers and products before listing
-3. **Tracking Integration**: Courier contract provides transparent shipping status
-4. **Dispute Resolution**: Formal process for handling conflicts with evidence review
-5. **Multi-party Validation**: No single party can unilaterally control the transaction flow
+```
+Listing → Purchase → Payment to Escrow → Courier Fee Deducted → 
+Shipping Arranged → Item Picked Up → In Transit → Delivered → 
+Buyer Confirms → Payment Released → Fees Distributed → Complete
+```
+
+The entire process is orchestrated through smart contracts ensuring transparency, security, and automated execution of each step without requiring manual intervention from the marketplace operator.
