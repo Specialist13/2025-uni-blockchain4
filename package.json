@@ -1,0 +1,18 @@
+{
+  "name": "2025-uni-blockchain4",
+  "version": "1.0.0",
+  "description": "![Full Sequence Diagram](docs/full_sequence_diagram.png)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "truffle": "^5.11.5"
+  }
+}
