@@ -2,73 +2,36 @@
 pragma solidity ^0.8.21;
 
 contract MarketplaceContract {
-    struct Listing {
-        uint256 listingId;
-        address seller;
-        string title;
-        string description;
-        uint256 priceWei;
-        bool verified;
-        uint256 createdAt;
-    }
+	// Represents a product listed by a seller
+	struct Product {
+		uint256 id;
+		address seller;
+		string title;
+		string description;
+		uint256 priceWei;
+		bool isActive;
+		uint256 createdAt;
+	}
 
-    enum PaymentStatus { None, Pending, Secured, Released, Refunded }
+	// Represents an order created when a buyer commits to purchase
+	struct Order {
+		uint256 id;
+		uint256 productId;
+		address buyer;
+		address seller;
+		uint256 escrowId; // reference to escrow instance/record
+		uint256 courierJobId; // reference to courier assignment
+		OrderStatus status;
+		uint256 createdAt;
+	}
 
-    struct Order {
-        uint256 orderId;
-        uint256 listingId;
-        address buyer;
-        address seller;
-        uint256 amountWei;
-        address escrowContract;
-        PaymentStatus paymentStatus;
-        uint256 createdAt;
-    }
-
-    enum ShippingStatus { None, Preparing, InTransit, Delivered }
-
-    struct ShippingRequest {
-        uint256 orderId;
-        address courierContract;
-        string pickupAddress;
-        string deliveryAddress;
-        string packageDetails;
-        ShippingStatus status;
-        string trackingNumber;
-        uint256 requestedAt;
-        uint256 pickedUpAt;
-        uint256 deliveredAt;
-    }
-
-    struct DeliveryConfirmation {
-        uint256 orderId;
-        address buyer;
-        bool confirmed;
-        uint256 confirmedAt;
-    }
-
-    struct FeeBreakdown {
-        uint256 orderId;
-        uint256 platformFeeWei;
-        uint256 courierFeeWei;
-        uint256 sellerFeeWei;
-        address platformAddress;
-        address courierAdress;
-        address sellerAdress;
-    }
-
-    enum DisputeStatus { None, Open, UnderReview, Resolved }
-
-    struct Dispute {
-        uint256 disputeId;
-        uint256 orderId;
-        address buyer;
-        address seller;
-        DisputeStatus status;
-        string buyerClaim;
-        string sellerResponse;
-        string resolution;
-        uint256 openedAt;
-        uint256 resolvedAt;
-    }
+	enum OrderStatus {
+		PendingPayment,   // created, awaiting payment to escrow
+		PaymentSecured,   // escrow funded
+		PreparingShipment, // seller preparing
+		InTransit,        // courier picked up
+		Delivered,        // courier delivered
+		BuyerConfirmed,   // buyer confirmed receipt
+		Completed        // funds released and fees distributed
+	}
 }
