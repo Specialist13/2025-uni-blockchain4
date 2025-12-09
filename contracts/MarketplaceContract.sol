@@ -241,4 +241,29 @@ contract MarketplaceContract {
         IEscrowContract(escrowContractAddress).onAwaitingDelivery(order.escrowId);
         emit ShipmentInTransit(order.buyer, orderId);
     }
+
+    event requestConfirmation(
+        address indexed buyer,
+        uint256 indexed orderId
+    );
+
+     // Called by the Courier contract when the shipment is delivered
+
+    function onShipmentDelivered(uint256 orderId) external onlyCourierContract {
+        Order storage order = orderById[orderId];
+        require(order.id != 0, "Order does not exist");
+        require(order.status == OrderStatus.InTransit, "Order is not in transit");
+
+        order.status = OrderStatus.Delivered;
+        emit requestConfirmation(order.buyer, orderId);
+    }
+
+    function confirmReceipt(uint256 orderId) external {
+        Order storage order = orderById[orderId];
+        require(order.id != 0, "Order does not exist");
+        require(msg.sender == order.buyer, "Only the buyer can confirm receipt");
+        require(order.status == OrderStatus.Delivered, "Order is not delivered");
+
+        order.status = OrderStatus.BuyerConfirmed;
+    }
 }
