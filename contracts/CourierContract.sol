@@ -14,6 +14,10 @@ interface IMarketplaceContract {
         uint256 orderId,
         uint256 shipmentId
     ) external;
+
+    function onShipmentDelivered(
+        uint256 orderId
+    ) external;
 }
 
 contract CourierContract {
@@ -117,7 +121,7 @@ contract CourierContract {
         emit AssignedShipment(newShipment, newShipment.courier);
     }
 
-    function ConfirmPickup(uint256 shipmentId) public {
+    function confirmPickup(uint256 shipmentId) public {
         Shipment memory shipment=shipments[shipmentId];
         require(shipment.courier == msg.sender, "Only assigned courier can pick up");
         require(shipment.status == ShipmentStatus.Assigned, "Shipment not assigned");
@@ -128,5 +132,17 @@ contract CourierContract {
         shipment.pickedUpAt = block.timestamp;
 
         IMarketplaceContract(marketplaceContractAddress).onShipmentPickedUp(shipment.orderId, shipmentId);
+    }
+
+    function confirmDelivery(uint256 shipmentId) public {
+        Shipment memory shipment=shipments[shipmentId];
+        require(shipment.courier == msg.sender, "Only assigned courier can confirm delivery");
+        require(shipment.status == ShipmentStatus.InTransit, "Shipment not in transit");
+        require(shipment.id != 0, "Shipment does not exist");
+
+        shipment.status = ShipmentStatus.Delivered;
+        shipment.deliveredAt = block.timestamp;
+
+        IMarketplaceContract(marketplaceContractAddress).onShipmentDelivered(shipment.orderId);
     }
 }
