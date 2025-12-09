@@ -135,7 +135,7 @@ contract CourierContract {
     }
 
     function confirmDelivery(uint256 shipmentId) public {
-        Shipment memory shipment=shipments[shipmentId];
+        Shipment storage shipment=shipmentById[shipmentId];
         require(shipment.courier == msg.sender, "Only assigned courier can confirm delivery");
         require(shipment.status == ShipmentStatus.InTransit, "Shipment not in transit");
         require(shipment.id != 0, "Shipment does not exist");

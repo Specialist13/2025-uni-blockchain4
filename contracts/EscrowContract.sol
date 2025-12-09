@@ -6,6 +6,10 @@ interface IMarketplaceContract {
         uint256 orderId,
         uint256 escrowId
     ) external;
+
+    function onFundsReleased(
+        uint256 orderId
+    ) external;
 }
 
 interface ICourierContract {
@@ -151,18 +155,22 @@ contract EscrowContract {
         escrow.status = EscrowStatus.AwaitingDelivery;
     }
 
-    function releaseFundsToSeller(uint256 escrowId, address payable sellerAddress, uint256 amount) internal {
+    function releaseFundsToSeller(uint256 escrowId) external onlyMarketplace {
         Escrow storage escrow = escrowById[escrowId];
         require(escrow.id != 0, "Escrow does not exist");
         require(escrow.fundsSecured, "Escrow funds not secured");
         require(!escrow.releasedToSeller, "Funds already released to seller");
-        require(amount == escrow.amountWei, "Incorrect amount to release");
 
         escrow.releasedToSeller = true;
         escrow.status = EscrowStatus.Released;
         escrow.closedAt = block.timestamp;
 
-        (bool success, ) = sellerAddress.call{value: amount}("");
+        (bool success, ) = escrow.seller.call{value: escrow.amountWei}("");
         require(success, "Funds release to seller failed");
+
+        (bool platformSuccess, ) = payable(platformFeeRecipient).call{value: escrow.platformFeeWei}("");
+        require(platformSuccess, "Platform fee transfer failed");
+
+        IMarketplaceContract(marketplaceContractAddress).onFundsReleased(escrow.orderId);
     }
 }

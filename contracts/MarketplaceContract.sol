@@ -22,6 +22,8 @@ interface IEscrowContract {
     ) external payable;
 
     function onAwaitingDelivery(uint256 escrowId) external;
+
+    function releaseFundsToSeller(uint256 escrowId) external;
 }
 
 interface ICourierContract {
@@ -265,5 +267,28 @@ contract MarketplaceContract {
         require(order.status == OrderStatus.Delivered, "Order is not delivered");
 
         order.status = OrderStatus.BuyerConfirmed;
+        IEscrowContract(escrowContractAddress).releaseFundsToSeller(order.escrowId);
+    }
+
+    event FundsReleased(
+        address indexed seller,
+        uint256 indexed orderId
+    );
+
+    event TransactionCompleted(
+        address indexed buyer,
+        uint256 indexed orderId
+    );
+
+     // Called by the Escrow contract when funds are released to the seller
+
+    function onFundsReleased(uint256 orderId) external onlyEscrowContract {
+        Order storage order = orderById[orderId];
+        require(order.id != 0, "Order does not exist");
+        require(order.status == OrderStatus.BuyerConfirmed, "Order is not buyer confirmed");
+
+        order.status = OrderStatus.Completed;
+        emit FundsReleased(order.seller, orderId);
+        emit TransactionCompleted(order.buyer, orderId);
     }
 }
