@@ -8,6 +8,13 @@ interface IMarketplaceContract {
     ) external;
 }
 
+interface ICourierContract {
+    function receivedCourierFee(
+        uint256 orderId,
+        uint256 escrowId
+    ) external payable;
+}
+
 contract EscrowContract {
 	// Tracks payment details held in escrow for a specific order
 	struct Escrow {
@@ -41,6 +48,7 @@ contract EscrowContract {
     address public owner;
     address public marketplaceContractAddress;
     address public platformFeeRecipient;
+    address public courierFeeRecipient;
 
     mapping(uint256 => Escrow) public escrowById;
 
@@ -56,10 +64,12 @@ contract EscrowContract {
         _;
     }
 
-    constructor(address _platformFeeRecipient) {
+    constructor(address _platformFeeRecipient, address _courierFeeRecipient) {
         owner = msg.sender;
         require(_platformFeeRecipient != address(0), "Platform fee recipient cannot be zero address");
         platformFeeRecipient = _platformFeeRecipient;
+        require(_courierFeeRecipient != address(0), "Courier fee recipient cannot be zero address");
+        courierFeeRecipient = _courierFeeRecipient;
     }
 
     function setMarketplaceAddress(address _marketplaceAddress) public onlyOwner {
@@ -101,11 +111,53 @@ contract EscrowContract {
         });
         escrows.push(newEscrow);
         escrowById[escrowId] = newEscrow;
-
+        transferCourierFee(escrowId, payable(courierFeeRecipient), courierFeeWei);
         IMarketplaceContract(marketplaceContractAddress).onEscrowFunded(orderId, escrowId);
     }
 
     function getEscrow(uint256 escrowId) public view returns (Escrow memory) {
         return escrowById[escrowId];
+    }
+
+    function transferCourierFee(uint256 escrowId, address payable courierAddress, uint256 amount) internal {
+        Escrow storage escrow = escrowById[escrowId];
+        require(escrow.id != 0, "Escrow does not exist");
+        require(escrow.fundsSecured, "Escrow funds not secured");
+        require(!escrow.courierFeeTransferred, "Courier fee already transferred");
+        require(amount == escrow.courierFeeWei, "Incorrect courier fee amount");
+
+        escrow.courierFeeTransferred = true;
+        escrow.status = EscrowStatus.CourierFeePaid;
+
+        (bool success, ) = courierAddress.call{value: amount}(
+            abi.encodeWithSignature("receivedCourierFee(uint256,uint256)", escrow.orderId, escrowId)
+        );
+        require(success, "Courier fee transfer failed");
+    }
+
+    event CourierFeeConfirmed(
+        uint256 indexed orderId,
+        uint256 indexed escrowId,
+        uint256 amountWei
+    );
+
+    function onCourierFeeConfirmed(uint256 orderId, uint256 escrowId, uint256 amountWei) external {
+        require(msg.sender == courierFeeRecipient, "Caller is not the courier fee recipient");
+        emit CourierFeeConfirmed(orderId, escrowId, amountWei);
+    }
+
+    function releaseFundsToSeller(uint256 escrowId, address payable sellerAddress, uint256 amount) internal {
+        Escrow storage escrow = escrowById[escrowId];
+        require(escrow.id != 0, "Escrow does not exist");
+        require(escrow.fundsSecured, "Escrow funds not secured");
+        require(!escrow.releasedToSeller, "Funds already released to seller");
+        require(amount == escrow.amountWei, "Incorrect amount to release");
+
+        escrow.releasedToSeller = true;
+        escrow.status = EscrowStatus.Released;
+        escrow.closedAt = block.timestamp;
+
+        (bool success, ) = sellerAddress.call{value: amount}("");
+        require(success, "Funds release to seller failed");
     }
 }

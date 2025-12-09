@@ -1,6 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.21;
 
+struct AddressInfo {
+    string name;
+    string line1;
+    string line2;
+    string city;
+    string state;
+    string zip;
+    string country;
+}
+
 interface IEscrowContract {
     function fundOrder(
         uint256 orderId,
@@ -10,6 +20,10 @@ interface IEscrowContract {
         uint256 courierFeeWei,
         uint256 platformFeeWei
     ) external payable;
+}
+
+interface ICourierContract {
+    function requestPickup(uint256 orderId, AddressInfo memory sender, AddressInfo memory recipient) external;
 }
 
 contract MarketplaceContract {
@@ -126,6 +140,7 @@ contract MarketplaceContract {
     }
 
     address public escrowContractAddress;
+    address public courierContractAddress;
 
     modifier onlyEscrowContract() {
         require(msg.sender == escrowContractAddress, "Caller is not the escrow contract");
@@ -135,6 +150,11 @@ contract MarketplaceContract {
     function setEscrowContractAddress(address _escrowContractAddress) public onlyOwner {
         require(_escrowContractAddress != address(0), "Escrow contract address cannot be zero");
         escrowContractAddress = _escrowContractAddress;
+    }
+
+    function setCourierContractAddress(address _courierContractAddress) public onlyOwner {
+        require(_courierContractAddress != address(0), "Courier contract address cannot be zero");
+        courierContractAddress = _courierContractAddress;
     }
 
     function buyAndFund(uint256 orderId) external payable {
@@ -178,5 +198,23 @@ contract MarketplaceContract {
         order.status = OrderStatus.PaymentSecured;
         emit EscrowFunded(orderId, escrowId);
         emit OrderReceived(orderId);
+    }
+
+    event ShipmentPrepared(uint256 indexed orderId);
+
+    function markReadyToShip(
+        uint256 orderId,
+        AddressInfo calldata sender,
+        AddressInfo calldata recipient
+    ) external {
+        Order storage order = orderById[orderId];
+        require(order.id != 0, "Order does not exist");
+        require(msg.sender == order.seller, "Only the seller can mark ready to ship");
+        require(order.status == OrderStatus.PaymentSecured, "Order is not in payment secured status");
+
+        order.status = OrderStatus.PreparingShipment;
+        emit ShipmentPrepared(orderId);
+
+        ICourierContract(courierContractAddress).requestPickup(orderId, sender, recipient);
     }
 }
