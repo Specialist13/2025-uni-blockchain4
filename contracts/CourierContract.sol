@@ -34,4 +34,7 @@ contract CourierContract {
 		InTransit,     // moving towards destination
 		Delivered      // delivered to buyer
 	}
+
+    Shipment[] public shipments;
+
 }
