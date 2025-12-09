@@ -38,15 +38,38 @@ contract EscrowContract {
 
     Escrow[] public escrows;
 
-    address public marketpalceContractAddress;
+    address public owner;
+    address public marketplaceContractAddress;
+    address public platformFeeRecipient;
 
-    modifier onlyMarketplace() {
-        require(msg.sender == marketpalceContractAddress, "Only marketplace can call");
+    mapping(uint256 => Escrow) public escrowById;
+
+    uint256 public nextEscrowId = 1;
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
         _;
     }
 
-    function setMarketplaceAddress(address _marketplaceAddress) public {
-        marketpalceContractAddress = _marketplaceAddress;
+    modifier onlyMarketplace() {
+        require(msg.sender == marketplaceContractAddress, "Only marketplace can call");
+        _;
+    }
+
+    constructor(address _platformFeeRecipient) {
+        owner = msg.sender;
+        require(_platformFeeRecipient != address(0), "Platform fee recipient cannot be zero address");
+        platformFeeRecipient = _platformFeeRecipient;
+    }
+
+    function setMarketplaceAddress(address _marketplaceAddress) public onlyOwner {
+        require(_marketplaceAddress != address(0), "Marketplace address cannot be zero");
+        marketplaceContractAddress = _marketplaceAddress;
+    }
+
+    function setPlatformFeeRecipient(address _platformFeeRecipient) public onlyOwner {
+        require(_platformFeeRecipient != address(0), "Platform fee recipient cannot be zero address");
+        platformFeeRecipient = _platformFeeRecipient;
     }
 
     function fundOrder(
@@ -57,9 +80,10 @@ contract EscrowContract {
         uint256 courierFeeWei,
         uint256 platformFeeWei
     ) external payable onlyMarketplace {
-        require (msg.value == priceWei + courierFeeWei + platformFeeWei, "Incorrect payment amount sent");
+        require(marketplaceContractAddress != address(0), "Marketplace contract address not set");
+        require(msg.value == priceWei + courierFeeWei + platformFeeWei, "Incorrect payment amount sent");
 
-        uint256 escrowId = escrows.length + 1;
+        uint256 escrowId = nextEscrowId++;
         Escrow memory newEscrow = Escrow({
             id: escrowId,
             buyer: buyer,
@@ -76,7 +100,12 @@ contract EscrowContract {
             closedAt: 0
         });
         escrows.push(newEscrow);
+        escrowById[escrowId] = newEscrow;
 
-        IMarketplaceContract(marketpalceContractAddress).onEscrowFunded(orderId, escrowId);
+        IMarketplaceContract(marketplaceContractAddress).onEscrowFunded(orderId, escrowId);
+    }
+
+    function getEscrow(uint256 escrowId) public view returns (Escrow memory) {
+        return escrowById[escrowId];
     }
 }
