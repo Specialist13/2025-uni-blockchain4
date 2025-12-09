@@ -67,6 +67,10 @@ contract CourierContract {
         _;
     }
 
+    constructor() {
+        owner = msg.sender;
+    }
+
     function setMarketplaceAddress(address _marketplaceAddress) public onlyOwner {
         require(_marketplaceAddress != address(0), "Marketplace address cannot be zero");
         marketplaceContractAddress = _marketplaceAddress;
@@ -122,11 +126,10 @@ contract CourierContract {
     }
 
     function confirmPickup(uint256 shipmentId) public {
-        Shipment memory shipment=shipments[shipmentId];
+        Shipment storage shipment = shipmentById[shipmentId];
         require(shipment.courier == msg.sender, "Only assigned courier can pick up");
         require(shipment.status == ShipmentStatus.Assigned, "Shipment not assigned");
         require(shipment.id != 0, "Shipment does not exist");
-        require(shipment.status == ShipmentStatus.Assigned, "Shipment not in assigned status");
 
         shipment.status = ShipmentStatus.InTransit;
         shipment.pickedUpAt = block.timestamp;
