@@ -165,6 +165,10 @@ contract MarketplaceContract {
         uint256 indexed escrowId
     );
 
+    event OrderReceived(
+        uint256 indexed orderId
+    );
+
     function onEscrowFunded(uint256 orderId, uint256 escrowId) external onlyEscrowContract {
         Order storage order = orderById[orderId];
         require(order.id != 0, "Order does not exist");
@@ -173,5 +177,6 @@ contract MarketplaceContract {
         order.escrowId = escrowId;
         order.status = OrderStatus.PaymentSecured;
         emit EscrowFunded(orderId, escrowId);
+        emit OrderReceived(orderId);
     }
 }
