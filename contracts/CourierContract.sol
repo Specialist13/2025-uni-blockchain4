@@ -9,6 +9,13 @@ interface IEscrowContract {
     ) external;
 }
 
+interface IMarketplaceContract {
+    function onShipmentPickedUp(
+        uint256 orderId,
+        uint256 shipmentId
+    ) external;
+}
+
 contract CourierContract {
 	// Shipping addresses are kept simple for demo purposes
 	struct AddressInfo {
@@ -28,7 +35,7 @@ contract CourierContract {
 		address courier;
 		AddressInfo pickup;
 		AddressInfo dropoff;
-		string trackingNumber;
+		uint256 trackingNumber;
 		ShipmentStatus status;
 		uint256 createdAt;
 		uint256 pickedUpAt;
@@ -36,14 +43,14 @@ contract CourierContract {
 	}
 
 	enum ShipmentStatus {
-		Requested,     // marketplace requested pickup
 		Assigned,      // courier assigned
-		PickedUp,      // in courier possession
 		InTransit,     // moving towards destination
 		Delivered      // delivered to buyer
 	}
 
     Shipment[] public shipments;
+    address[] public couriers;
+    uint256 lastCourierIndex = 0;
 
     mapping(uint256 => Shipment) public shipmentById;
 
@@ -89,15 +96,17 @@ contract CourierContract {
     );
 
     function requestPickup(uint256 orderId, AddressInfo memory pickup, AddressInfo memory dropoff) external {
+        require(marketplaceContractAddress != address(0), "Marketplace address not set");
+        require(couriers.length > 0, "No couriers available");
         uint256 shipmentId = shipments.length + 1;
         Shipment memory newShipment = Shipment({
             id: shipmentId,
             orderId: orderId,
-            courier: address(0),
+            courier: couriers[lastCourierIndex++ % couriers.length],
             pickup: pickup,
             dropoff: dropoff,
-            trackingNumber: "",
-            status: ShipmentStatus.Requested,
+            trackingNumber: shipmentId,
+            status: ShipmentStatus.Assigned,
             createdAt: block.timestamp,
             pickedUpAt: 0,
             deliveredAt: 0
@@ -106,5 +115,18 @@ contract CourierContract {
         shipmentById[shipmentId] = newShipment;
         
         emit AssignedShipment(newShipment, newShipment.courier);
+    }
+
+    function ConfirmPickup(uint256 shipmentId) public {
+        Shipment memory shipment=shipments[shipmentId];
+        require(shipment.courier == msg.sender, "Only assigned courier can pick up");
+        require(shipment.status == ShipmentStatus.Assigned, "Shipment not assigned");
+        require(shipment.id != 0, "Shipment does not exist");
+        require(shipment.status == ShipmentStatus.Assigned, "Shipment not in assigned status");
+
+        shipment.status = ShipmentStatus.InTransit;
+        shipment.pickedUpAt = block.timestamp;
+
+        IMarketplaceContract(marketplaceContractAddress).onShipmentPickedUp(shipment.orderId, shipmentId);
     }
 }

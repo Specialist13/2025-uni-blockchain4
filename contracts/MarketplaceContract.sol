@@ -20,6 +20,8 @@ interface IEscrowContract {
         uint256 courierFeeWei,
         uint256 platformFeeWei
     ) external payable;
+
+    function onAwaitingDelivery(uint256 escrowId) external;
 }
 
 interface ICourierContract {
@@ -147,6 +149,11 @@ contract MarketplaceContract {
         _;
     }
 
+    modifier onlyCourierContract() {
+        require(msg.sender == courierContractAddress, "Caller is not the courier contract");
+        _;
+    }
+
     function setEscrowContractAddress(address _escrowContractAddress) public onlyOwner {
         require(_escrowContractAddress != address(0), "Escrow contract address cannot be zero");
         escrowContractAddress = _escrowContractAddress;
@@ -216,5 +223,22 @@ contract MarketplaceContract {
         emit ShipmentPrepared(orderId);
 
         ICourierContract(courierContractAddress).requestPickup(orderId, sender, recipient);
+    }
+
+    event ShipmentInTransit(
+        address indexed buyer,
+        uint256 indexed orderId
+    );
+
+    // Called by the Courier contract when the shipment is picked up
+    function onShipmentPickedUp(uint256 orderId, uint256 shipmentId) external onlyCourierContract {
+        Order storage order = orderById[orderId];
+        require(order.id != 0, "Order does not exist");
+        require(order.status == OrderStatus.PreparingShipment, "Order is not in preparing shipment status");
+
+        order.courierJobId = shipmentId;
+        order.status = OrderStatus.InTransit;
+        IEscrowContract(escrowContractAddress).onAwaitingDelivery(order.escrowId);
+        emit ShipmentInTransit(order.buyer, orderId);
     }
 }
