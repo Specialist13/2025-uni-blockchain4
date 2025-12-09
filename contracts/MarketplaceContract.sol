@@ -16,6 +16,8 @@ contract MarketplaceContract {
     Product[] public products;
     Order[] public orders;
 
+    address public owner;
+
 	// Represents a product listed by a seller
 	struct Product {
 		uint256 id;
@@ -52,7 +54,17 @@ contract MarketplaceContract {
     mapping(uint256 => Product) public productById;
     mapping(uint256 => Order) public orderById;
 
-    uint public nextOrderId = 1;
+    uint256 public nextProductId = 1;
+    uint256 public nextOrderId = 1;
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
 
     event ProductAdded(
         uint256 indexed productId, 
@@ -62,7 +74,7 @@ contract MarketplaceContract {
     );
 
     function addProduct(string memory title, string memory description, uint256 priceWei) public {
-        uint256 productId = products.length + 1;
+        uint256 productId = nextProductId++;
         Product memory newProduct = Product({
             id: productId,
             seller: msg.sender,
@@ -90,6 +102,7 @@ contract MarketplaceContract {
 
     function createOrder(uint256 productId) public {
         Product memory product = productById[productId];
+        require(product.id != 0, "Product does not exist");
         require(product.isActive, "Product is not active");
 
         uint256 orderId = nextOrderId++;
@@ -119,12 +132,14 @@ contract MarketplaceContract {
         _;
     }
 
-    function setEscrowContractAddress(address _escrowContractAddress) public {
+    function setEscrowContractAddress(address _escrowContractAddress) public onlyOwner {
+        require(_escrowContractAddress != address(0), "Escrow contract address cannot be zero");
         escrowContractAddress = _escrowContractAddress;
     }
 
-    function buyAndFund(uint256 orderID) external payable {
-        Order storage order = orders[orderID];
+    function buyAndFund(uint256 orderId) external payable {
+        require(escrowContractAddress != address(0), "Escrow contract address not set");
+        Order storage order = orderById[orderId];
         require(order.id != 0, "Order does not exist");
         require(order.status == OrderStatus.PendingPayment, "Order is not pending payment");
         require(msg.sender == order.buyer, "Only the buyer can fund the order");
@@ -151,7 +166,7 @@ contract MarketplaceContract {
     );
 
     function onEscrowFunded(uint256 orderId, uint256 escrowId) external onlyEscrowContract {
-        Order storage order = orders[orderId];
+        Order storage order = orderById[orderId];
         require(order.id != 0, "Order does not exist");
         require(order.status == OrderStatus.PendingPayment, "Order is not pending payment");
 
