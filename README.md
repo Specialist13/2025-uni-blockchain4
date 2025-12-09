@@ -2,6 +2,10 @@
 
 ![Full Sequence Diagram](docs/full_sequence_diagram.png)
 
+## Quick Start
+
+For setup and deployment instructions, see [SETUP.md](./SETUP.md).
+
 ## Overview
 This C2C marketplace coordinates a secure, multi-party transaction across distinct smart contracts and off-chain actors. A seller lists a product which is verified by a service provider before becoming visible to buyers. When a buyer commits to purchase, payment is held in an escrow contract to protect both sides. The marketplace orchestrates shipping via a courier contract, enabling status tracking from pickup to delivery. After the buyer confirms receipt, escrow releases funds to the seller and deducts the platform fee for the service provider.
 

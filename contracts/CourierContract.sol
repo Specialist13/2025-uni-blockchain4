@@ -81,6 +81,11 @@ contract CourierContract {
         escrowContractAddress = _escrowContractAddress;
     }
 
+    function addCourier(address courierAddress) public onlyOwner {
+        require(courierAddress != address(0), "Invalid courier address");
+        couriers.push(courierAddress);
+    }
+
     event CourierFeeReceived(
         uint256 orderId,
         uint256 escrowId,
