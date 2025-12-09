@@ -38,9 +38,7 @@ contract EscrowContract {
 		Funded,
 		CourierFeePaid,
 		AwaitingDelivery,
-		ReadyForRelease,
-		Released,
-		Refunded
+		Released
 	}
 
     Escrow[] public escrows;
@@ -144,6 +142,13 @@ contract EscrowContract {
     function onCourierFeeConfirmed(uint256 orderId, uint256 escrowId, uint256 amountWei) external {
         require(msg.sender == courierFeeRecipient, "Caller is not the courier fee recipient");
         emit CourierFeeConfirmed(orderId, escrowId, amountWei);
+    }
+
+    function onAwaitingDelivery(uint256 escrowId) external onlyMarketplace {
+        Escrow storage escrow = escrowById[escrowId];
+        require(escrow.id != 0, "Escrow does not exist");
+        require(escrow.status == EscrowStatus.CourierFeePaid, "Escrow not in correct state");
+        escrow.status = EscrowStatus.AwaitingDelivery;
     }
 
     function releaseFundsToSeller(uint256 escrowId, address payable sellerAddress, uint256 amount) internal {
