@@ -82,4 +82,29 @@ contract CourierContract {
         );
         emit CourierFeeReceived(orderId, escrowId, msg.value);
     }
+
+    event AssignedShipment(
+        Shipment shipment,
+        address indexed courier
+    );
+
+    function requestPickup(uint256 orderId, AddressInfo memory pickup, AddressInfo memory dropoff) external {
+        uint256 shipmentId = shipments.length + 1;
+        Shipment memory newShipment = Shipment({
+            id: shipmentId,
+            orderId: orderId,
+            courier: address(0),
+            pickup: pickup,
+            dropoff: dropoff,
+            trackingNumber: "",
+            status: ShipmentStatus.Requested,
+            createdAt: block.timestamp,
+            pickedUpAt: 0,
+            deliveredAt: 0
+        });
+        shipments.push(newShipment);
+        shipmentById[shipmentId] = newShipment;
+        
+        emit AssignedShipment(newShipment, newShipment.courier);
+    }
 }
