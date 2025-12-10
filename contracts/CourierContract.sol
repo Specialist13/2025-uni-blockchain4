@@ -54,7 +54,7 @@ contract CourierContract {
 
     Shipment[] public shipments;
     address[] public couriers;
-    uint256 lastCourierIndex = 0;
+    uint256 public lastCourierIndex;
 
     mapping(uint256 => Shipment) public shipmentById;
 

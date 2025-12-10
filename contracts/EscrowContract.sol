@@ -54,7 +54,7 @@ contract EscrowContract {
 
     mapping(uint256 => Escrow) public escrowById;
 
-    uint256 public nextEscrowId = 1;
+    uint256 public nextEscrowId;
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner can call this function");
@@ -72,6 +72,7 @@ contract EscrowContract {
         platformFeeRecipient = _platformFeeRecipient;
         require(_courierFeeRecipient != address(0), "Courier fee recipient cannot be zero address");
         courierFeeRecipient = _courierFeeRecipient;
+        nextEscrowId = 1;
     }
 
     function setMarketplaceAddress(address _marketplaceAddress) public onlyOwner {

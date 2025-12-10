@@ -72,8 +72,8 @@ contract MarketplaceContract {
     mapping(uint256 => Product) public productById;
     mapping(uint256 => Order) public orderById;
 
-    uint256 public nextProductId = 1;
-    uint256 public nextOrderId = 1;
+    uint256 public nextProductId;
+    uint256 public nextOrderId;
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner can call this function");
@@ -82,6 +82,8 @@ contract MarketplaceContract {
 
     constructor() {
         owner = msg.sender;
+        nextProductId = 1;
+        nextOrderId = 1;
     }
 
     event ProductAdded(
