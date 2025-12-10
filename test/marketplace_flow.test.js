@@ -29,7 +29,7 @@ contract("End-to-end marketplace flow", (accounts) => {
 
   it("runs full purchase, ship, deliver, confirm, payout sequence", async () => {
     // Seller lists a product
-    const priceWei = toWei("1");
+    const priceWei = toWei("0.01");
     await marketplace.addProduct("Widget", "Nice widget", priceWei, { from: seller });
     const product = await marketplace.getProduct(1);
     assert.equal(product.seller, seller, "seller set");
