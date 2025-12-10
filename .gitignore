@@ -1,16 +1,61 @@
 # Dependencies
 node_modules/
 package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.pnp
+.pnp.js
 
 # Build artifacts
 build/
 dist/
 *.sol.js
+*.sol.js.map
+
+# Frontend specific (Vite/React)
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/.next/
+frontend/.nuxt/
+frontend/.output/
+frontend/.vuepress/dist/
+frontend/.serverless/
+frontend/.vercel/
+frontend/.svelte-kit/
+
+# Backend specific
+backend/dist/
+backend/build/
+backend/.cache/
+backend/uploads/
+backend/public/uploads/
+backend/temp/
+backend/tmp/
+backend/sessions/
+backend/logs/
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
 
 # Environment variables
 .env
 .env.local
 .env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.development
+.env.test
+.env.production
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+backend/.env
+backend/.env.local
+backend/.env.*.local
 
 # Logs
 logs/
@@ -18,25 +63,69 @@ logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
-# IDE
+# IDE and Editor files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+.project
+.classpath
+.settings/
+*.iml
+*.ipr
+*.iws
+
+# OS files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
 
 # Testing
 coverage/
+.nyc_output/
+.coverage/
+*.lcov
+.jest/
 .nyc_output/
 
 # Temporary files
 *.tmp
 *.temp
 .cache/
+.temp/
+.tmp/
+*.pid
+*.seed
+*.pid.lock
 
-# OS files
-.DS_Store
-Thumbs.db
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
 
+# Misc
+*.tgz
+*.tar.gz
+.cache
+.parcel-cache
+.next
+.nuxt
+.output
+.vuepress/dist
+.serverless
+.vercel
+.svelte-kit
