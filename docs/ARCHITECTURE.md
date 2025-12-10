@@ -48,23 +48,23 @@ This C2C (Consumer-to-Consumer) marketplace is a decentralized application (dApp
        │
        │ HTTP/REST API
        │
-┌──────▼──────────────────────────────────────┐
+┌──────▼───────────────────────────────────────┐
 │         Backend Server                       │
-│  ┌──────────────────────────────────────┐   │
-│  │  API Layer                           │   │
-│  │  - Product endpoints                 │   │
-│  │  - Order endpoints                   │   │
-│  │  - User authentication               │   │
-│  │  - Image upload                      │   │
-│  └──────┬───────────────────────────────┘   │
+│  ┌──────────────────────────────────────┐    │
+│  │  API Layer                           │    │
+│  │  - Product endpoints                 │    │
+│  │  - Order endpoints                   │    │
+│  │  - User authentication               │    │
+│  │  - Image upload                      │    │
+│  └──────┬───────────────────────────────┘    │
 │         │                                    │
-│  ┌──────▼───────────────────────────────┐   │
-│  │  Event Indexer                       │   │
-│  │  - Listens to contract events        │   │
-│  │  - Updates database                  │   │
-│  └──────┬───────────────────────────────┘   │
+│  ┌──────▼───────────────────────────────┐    │
+│  │  Event Indexer                       │    │
+│  │  - Listens to contract events        │    │
+│  │  - Updates database                  │    │
+│  └──────┬───────────────────────────────┘    │
 │         │                                    │
-│  ┌──────▼───────────────────────────────┐   │
+│  ┌──────▼────────────────────────────────┐   │
 │  │  Database                             │   │
 │  │  - Products (with images)             │   │
 │  │  - Orders                             │   │
@@ -76,14 +76,14 @@ This C2C (Consumer-to-Consumer) marketplace is a decentralized application (dApp
        │ (Contract Calls)
        │
 ┌──────▼──────────────────────────────────────┐
-│         Ethereum Network                     │
+│         Ethereum Network                    │
 │  ┌──────────────────────────────────────┐   │
 │  │   MarketplaceContract                │   │
 │  │   - Product listings                 │   │
 │  │   - Order management                 │   │
 │  │   - Transaction orchestration        │   │
 │  └──────┬───────────────┬───────────────┘   │
-│         │               │                    │
+│         │               │                   │
 │  ┌──────▼──────┐  ┌─────▼──────────┐        │
 │  │ Escrow      │  │ Courier        │        │
 │  │ Contract    │  │ Contract       │        │
@@ -91,7 +91,7 @@ This C2C (Consumer-to-Consumer) marketplace is a decentralized application (dApp
 │  │   escrow    │  │ - Tracking     │        │
 │  │ - Fee dist. │  │ - Delivery     │        │
 │  └─────────────┘  └────────────────┘        │
-└──────────────────────────────────────────────┘
+└─────────────────────────────────────────────┘
 ```
 
 ### Component Responsibilities
@@ -299,7 +299,7 @@ Contract A → Interface Call → Contract B → Callback → Contract A
                                     ┌──────────────────────┐
                                     │   Frontend Polling   │
                                     │   or WebSocket       │
-                                    │   - Updates UI        │
+                                    │   - Updates UI       │
                                     └──────────────────────┘
 ```
 
