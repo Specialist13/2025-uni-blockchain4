@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { connectDatabase, disconnectDatabase } from './database/connection.js';
 
 dotenv.config();
 
@@ -21,7 +22,33 @@ app.get('/api/health', (req, res) => {
 import routes from './routes/index.js';
 app.use('/api', routes);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
+// Initialize database and start server
+async function startServer() {
+  try {
+    // Initialize database connection
+    await connectDatabase();
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`Backend server running on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  await disconnectDatabase();
+  process.exit(0);
 });
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  await disconnectDatabase();
+  process.exit(0);
+});
+
+startServer();
