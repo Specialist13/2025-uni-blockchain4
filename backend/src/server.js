@@ -22,6 +22,21 @@ app.get('/api/health', (req, res) => {
 import routes from './routes/index.js';
 app.use('/api', routes);
 
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+
+  const statusCode = err.statusCode || err.status || 500;
+  const message = err.message || 'Internal server error';
+  const errorDetails = process.env.NODE_ENV === 'development' ? err.stack : undefined;
+
+  res.status(statusCode).json({
+    success: false,
+    error: message,
+    ...(errorDetails && { details: errorDetails })
+  });
+});
+
 // Initialize database and start server
 async function startServer() {
   try {
