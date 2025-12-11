@@ -12,7 +12,7 @@ export const User = new EntitySchema({
     walletAddress: {
       type: 'varchar',
       length: 42,
-      unique: true
+      nullable: true
     },
     username: {
       type: 'varchar',
@@ -22,7 +22,11 @@ export const User = new EntitySchema({
     email: {
       type: 'varchar',
       length: 255,
-      nullable: true
+      unique: true
+    },
+    password: {
+      type: 'varchar',
+      length: 255
     },
     bio: {
       type: 'text',
@@ -47,6 +51,9 @@ export const User = new EntitySchema({
     }
   },
   indices: [
+    {
+      columns: ['email']
+    },
     {
       columns: ['walletAddress']
     }
