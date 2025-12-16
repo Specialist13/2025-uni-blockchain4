@@ -4,6 +4,7 @@ import { ExampleController } from '../controllers/ExampleController.js';
 import authRoutes from './auth.js';
 import productRoutes from './products.js';
 import orderRoutes from './orders.js';
+import escrowRoutes from './escrows.js';
 
 const router = express.Router();
 
@@ -15,6 +16,9 @@ router.use('/products', productRoutes);
 
 // Order routes
 router.use('/orders', orderRoutes);
+
+// Escrow routes
+router.use('/escrows', escrowRoutes);
 
 // Public route example
 router.get('/public', BaseController.handleAsync(ExampleController.getPublicData));
