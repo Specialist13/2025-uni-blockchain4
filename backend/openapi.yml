@@ -14,6 +14,8 @@ tags:
     description: Product listing and management endpoints
   - name: Orders
     description: Order management endpoints
+  - name: Escrows
+    description: Escrow management endpoints
   - name: Auth
     description: Authentication endpoints
 
@@ -442,6 +444,39 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /escrows/{id}:
+    get:
+      tags:
+        - Escrows
+      summary: Get escrow details
+      description: Retrieve detailed information about a specific escrow. Requires authentication and ownership check (buyer or seller).
+      operationId: getEscrow
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Escrow ID
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -820,28 +855,73 @@ components:
 
     Escrow:
       type: object
+      required:
+        - id
+        - buyer
+        - seller
+        - orderId
+        - amountWei
+        - courierFeeWei
+        - platformFeeWei
+        - fundsSecured
+        - courierFeeTransferred
+        - releasedToSeller
+        - status
+        - createdAt
       properties:
         id:
           type: integer
+          description: Escrow ID
         buyer:
           type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Buyer wallet address
         seller:
           type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Seller wallet address
         orderId:
           type: integer
+          description: Associated order ID
         amountWei:
           type: string
+          description: Total amount in Wei
         courierFeeWei:
           type: string
+          description: Courier fee in Wei
         platformFeeWei:
           type: string
+          description: Platform fee in Wei
         fundsSecured:
           type: boolean
+          description: Whether funds are secured
+        courierFeeTransferred:
+          type: boolean
+          description: Whether courier fee has been transferred
+        releasedToSeller:
+          type: boolean
+          description: Whether funds have been released to seller
         status:
           type: string
+          enum:
+            - Initialized
+            - Funded
+            - CourierFeePaid
+            - AwaitingDelivery
+            - Released
+          description: Escrow status
         createdAt:
           type: string
           format: date-time
+          description: Escrow creation timestamp
+        closedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Escrow closure timestamp
+        order:
+          $ref: '#/components/schemas/Order'
+          description: Associated order (only included when relations are loaded)
 
     Shipment:
       type: object
