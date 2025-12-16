@@ -33,6 +33,10 @@ export class ProductRepository {
     return await this.findById(id);
   }
 
+  static async deactivate(id) {
+    return await this.update(id, { isActive: false });
+  }
+
   static async syncFromBlockchain(blockchainProduct) {
     const repository = this.getRepository();
     const existing = await this.findById(Number(blockchainProduct.id));
