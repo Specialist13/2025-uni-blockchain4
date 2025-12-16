@@ -68,37 +68,72 @@ export class BlockchainService {
   }
 
   static async sendTransaction(contract, methodName, value, ...args) {
-    try {
-      const gasEstimate = await this.estimateGas(contract, methodName, ...args);
-      const gasLimit = gasEstimate + (gasEstimate / 10n);
+    const maxRetries = parseInt(process.env.TRANSACTION_MAX_RETRIES || '3');
+    const retryDelay = parseInt(process.env.TRANSACTION_RETRY_DELAY_MS || '1000');
 
-      const txOptions = {
-        gasLimit,
-        ...(blockchainConfig.gasPrice && { gasPrice: blockchainConfig.gasPrice }),
-      };
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const gasEstimate = await this.estimateGas(contract, methodName, ...args);
+        const gasLimit = gasEstimate + (gasEstimate / 10n);
 
-      if (value && value > 0n) {
-        txOptions.value = value;
-      }
+        const txOptions = {
+          gasLimit,
+          ...(blockchainConfig.gasPrice && { gasPrice: blockchainConfig.gasPrice }),
+        };
 
-      const tx = await contract[methodName](...args, txOptions);
-      console.log(`Transaction sent: ${tx.hash}`);
-      
-      const receipt = await tx.wait();
-      console.log(`Transaction confirmed: ${receipt.hash}`);
-      
-      return { tx, receipt };
-    } catch (error) {
-      console.error(`Transaction failed for ${methodName}:`, error);
-      
-      if (error.reason) {
-        throw new Error(`Transaction failed: ${error.reason}`);
+        if (value && value > 0n) {
+          txOptions.value = value;
+        }
+
+        const tx = await contract[methodName](...args, txOptions);
+        console.log(`Transaction sent: ${tx.hash} (attempt ${attempt}/${maxRetries})`);
+        
+        const receipt = await tx.wait();
+        
+        if (receipt.status === 0) {
+          throw new Error(`Transaction reverted: ${tx.hash}`);
+        }
+        
+        console.log(`Transaction confirmed: ${receipt.hash}`);
+        return { tx, receipt };
+      } catch (error) {
+        const isLastAttempt = attempt === maxRetries;
+        const isRetryableError = this.isRetryableError(error);
+        
+        console.error(`Transaction failed for ${methodName} (attempt ${attempt}/${maxRetries}):`, error.message);
+        
+        if (!isRetryableError || isLastAttempt) {
+          if (error.reason) {
+            throw new Error(`Transaction failed: ${error.reason}`);
+          }
+          if (error.message) {
+            throw new Error(`Transaction failed: ${error.message}`);
+          }
+          throw new Error('Transaction failed with unknown error');
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
       }
-      if (error.message) {
-        throw new Error(`Transaction failed: ${error.message}`);
-      }
-      throw new Error('Transaction failed with unknown error');
     }
+  }
+
+  static isRetryableError(error) {
+    if (!error || !error.message) {
+      return false;
+    }
+
+    const retryablePatterns = [
+      'network',
+      'timeout',
+      'ECONNRESET',
+      'ETIMEDOUT',
+      'nonce',
+      'replacement transaction',
+      'already known'
+    ];
+
+    const errorMessage = error.message.toLowerCase();
+    return retryablePatterns.some(pattern => errorMessage.includes(pattern));
   }
 
   static parseError(error) {

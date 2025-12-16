@@ -312,20 +312,50 @@ export class EventIndexerService {
   }
 
   static async processQueue() {
+    const maxRetries = parseInt(process.env.EVENT_MAX_RETRIES || '5');
+    const retryDelay = parseInt(process.env.EVENT_RETRY_DELAY_MS || '1000');
+    const eventRetryCounts = new Map();
+
     while (this.processingQueue) {
       if (this.eventQueue.length > 0) {
         const eventData = this.eventQueue.shift();
+        const eventKey = `${eventData.event.transactionHash}-${eventData.event.logIndex}`;
+        const retryCount = eventRetryCounts.get(eventKey) || 0;
+
         try {
           await this.processEvent(eventData);
+          eventRetryCounts.delete(eventKey);
         } catch (error) {
-          console.error(`Error processing event ${eventData.eventName}:`, error);
-          this.eventQueue.push(eventData);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          console.error(`Error processing event ${eventData.eventName} (retry ${retryCount}/${maxRetries}):`, error);
+          
+          if (retryCount < maxRetries) {
+            eventRetryCounts.set(eventKey, retryCount + 1);
+            const delay = retryDelay * Math.pow(2, retryCount);
+            this.eventQueue.push(eventData);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          } else {
+            console.error(`Max retries reached for event ${eventKey}. Moving to failed events.`);
+            eventRetryCounts.delete(eventKey);
+            await this.handleFailedEvent(eventData, error);
+          }
         }
       } else {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
+  }
+
+  static async handleFailedEvent(eventData, error) {
+    const eventKey = `${eventData.event.transactionHash}-${eventData.event.logIndex}`;
+    console.error(`Permanently failed event ${eventKey} after max retries:`, {
+      eventName: eventData.eventName,
+      contractAddress: eventData.contractAddress,
+      transactionHash: eventData.event.transactionHash,
+      blockNumber: eventData.event.blockNumber,
+      logIndex: eventData.event.logIndex,
+      error: error.message || 'Unknown error',
+      stack: error.stack
+    });
   }
 
   static async processEvent(eventData) {
