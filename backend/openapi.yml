@@ -16,6 +16,8 @@ tags:
     description: Order management endpoints
   - name: Escrows
     description: Escrow management endpoints
+  - name: Shipments
+    description: Shipment tracking and courier management endpoints
   - name: Auth
     description: Authentication endpoints
 
@@ -477,6 +479,142 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /shipments/{id}:
+    get:
+      tags:
+        - Shipments
+      summary: Get shipment details
+      description: Retrieve detailed information about a specific shipment including addresses. Requires authentication and ownership check (buyer, seller, or courier).
+      operationId: getShipment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shipment ID
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /shipments/order/{orderId}:
+    get:
+      tags:
+        - Shipments
+      summary: Get shipment by order ID
+      description: Retrieve shipment details for a specific order. Requires authentication and ownership check (buyer, seller, or courier).
+      operationId: getShipmentByOrderId
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: Order ID
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /shipments/{id}/pickup:
+    post:
+      tags:
+        - Shipments
+      summary: Confirm pickup
+      description: Confirm that the shipment has been picked up. Requires authentication and courier role (must be the assigned courier).
+      operationId: confirmPickup
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shipment ID
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Pickup confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /shipments/{id}/delivery:
+    post:
+      tags:
+        - Shipments
+      summary: Confirm delivery
+      description: Confirm that the shipment has been delivered. Requires authentication and courier role (must be the assigned courier).
+      operationId: confirmDelivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shipment ID
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Delivery confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -925,18 +1063,57 @@ components:
 
     Shipment:
       type: object
+      required:
+        - id
+        - orderId
+        - courier
+        - trackingNumber
+        - status
+        - createdAt
       properties:
         id:
           type: integer
+          description: Shipment ID
         orderId:
           type: integer
+          description: Associated order ID
         courier:
           type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Courier wallet address
+        trackingNumber:
+          type: string
+          maxLength: 100
+          description: Tracking number
         status:
           type: string
+          enum:
+            - Assigned
+            - InTransit
+            - Delivered
+          description: Shipment status
         createdAt:
           type: string
           format: date-time
+          description: Shipment creation timestamp
+        pickedUpAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Pickup timestamp
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Delivery timestamp
+        order:
+          $ref: '#/components/schemas/Order'
+          description: Associated order (only included when relations are loaded)
+        addresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/AddressInfo'
+          description: Pickup and delivery addresses (only included when relations are loaded)
 
     FeeCalculation:
       type: object
