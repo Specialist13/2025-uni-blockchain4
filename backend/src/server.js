@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDatabase, disconnectDatabase } from './database/connection.js';
+import { BlockchainService } from './services/BlockchainService.js';
 
 dotenv.config();
 
@@ -42,6 +43,14 @@ async function startServer() {
   try {
     // Initialize database connection
     await connectDatabase();
+    
+    // Initialize blockchain service (non-blocking - will warn if not configured)
+    try {
+      BlockchainService.initialize();
+      console.log('Blockchain service initialized successfully');
+    } catch (error) {
+      console.warn('Blockchain service initialization failed (contracts may not be available):', error.message);
+    }
     
     // Start server
     app.listen(PORT, () => {
