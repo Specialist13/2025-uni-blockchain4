@@ -155,17 +155,24 @@ export class OrderService {
   }
 
   static async listOrders(options = {}) {
-    const { buyer, seller, status, page = 1, limit = 20 } = options;
+    const { buyer, seller, status, userAddress, page = 1, limit = 20 } = options;
 
     const repository = OrderRepository.getRepository();
     const queryBuilder = repository.createQueryBuilder('order');
 
-    if (buyer) {
-      queryBuilder.andWhere('order.buyer = :buyer', { buyer });
-    }
+    if (userAddress) {
+      queryBuilder.andWhere(
+        '(order.buyer = :userAddress OR order.seller = :userAddress)',
+        { userAddress }
+      );
+    } else {
+      if (buyer) {
+        queryBuilder.andWhere('order.buyer = :buyer', { buyer });
+      }
 
-    if (seller) {
-      queryBuilder.andWhere('order.seller = :seller', { seller });
+      if (seller) {
+        queryBuilder.andWhere('order.seller = :seller', { seller });
+      }
     }
 
     if (status) {

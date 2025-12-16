@@ -3,6 +3,7 @@ import { BaseController } from '../controllers/BaseController.js';
 import { ExampleController } from '../controllers/ExampleController.js';
 import authRoutes from './auth.js';
 import productRoutes from './products.js';
+import orderRoutes from './orders.js';
 
 const router = express.Router();
 
@@ -11,6 +12,9 @@ router.use('/auth', authRoutes);
 
 // Product routes
 router.use('/products', productRoutes);
+
+// Order routes
+router.use('/orders', orderRoutes);
 
 // Public route example
 router.get('/public', BaseController.handleAsync(ExampleController.getPublicData));
@@ -21,10 +25,5 @@ router.get(
   BaseController.requireAuth(),
   BaseController.handleAsync(ExampleController.getProtectedData)
 );
-
-// Placeholder routes - will be implemented
-router.get('/orders', (req, res) => {
-  res.json({ message: 'Orders endpoint - to be implemented' });
-});
 
 export default router;
