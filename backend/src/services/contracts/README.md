@@ -38,7 +38,7 @@ await MarketplaceContractService.addProduct(
 );
 
 // Create an order
-await MarketplaceContractService.createOrder(productId);
+await MarketplaceContractService.createOrder(productId, buyerAddress);
 
 // Fund an order
 await MarketplaceContractService.buyAndFund(orderId, totalAmountWei);

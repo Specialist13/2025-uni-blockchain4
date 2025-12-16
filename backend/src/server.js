@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { connectDatabase, disconnectDatabase } from './database/connection.js';
 import { BlockchainService } from './services/BlockchainService.js';
 import { EventIndexerService } from './services/EventIndexerService.js';
+import { MarketplaceContractService } from './services/contracts/MarketplaceContractService.js';
 
 dotenv.config();
 
@@ -18,6 +19,39 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Backend server is running' });
+});
+
+// Temp endpoint to check if product ID 4 exists
+app.get('/api/temp/check-product-4', async (req, res) => {
+  try {
+    const product = await MarketplaceContractService.getProduct(6);
+    
+    if (product.id === 0n || product.id === 0) {
+      res.json({ 
+        exists: false, 
+        message: 'Product ID 4 does not exist on the blockchain' 
+      });
+    } else {
+      res.json({ 
+        exists: true, 
+        message: 'Product ID 4 exists on the blockchain',
+        product: {
+          id: product.id.toString(),
+          seller: product.seller,
+          title: product.title,
+          description: product.description,
+          priceWei: product.priceWei.toString(),
+          isActive: product.isActive,
+          createdAt: product.createdAt.toString()
+        }
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
 });
 
 // API routes

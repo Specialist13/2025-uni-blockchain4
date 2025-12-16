@@ -17,7 +17,7 @@ export const Order = new EntitySchema({
     id: {
       type: 'integer',
       primary: true,
-      generated: true
+      generated: false
     },
     productId: {
       type: 'integer'

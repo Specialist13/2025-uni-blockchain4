@@ -93,6 +93,17 @@ export class CourierContractService {
     return await contract.shipmentById(shipmentId);
   }
 
+  static async addCourier(courierAddress) {
+    const contract = this.getContract();
+    const formattedAddress = BlockchainService.formatAddress(courierAddress);
+    return await BlockchainService.sendTransaction(
+      contract,
+      'addCourier',
+      null,
+      formattedAddress
+    );
+  }
+
   static async getEvents(eventName, fromBlock = 0, toBlock = 'latest') {
     const contract = this.getReadOnlyContract();
     const filter = contract.filters[eventName]();

@@ -349,7 +349,10 @@ paths:
       tags:
         - Orders
       summary: Fund order escrow
-      description: Fund the escrow for an order. Requires authentication and buyer ownership.
+      description: |
+        Fund the escrow for an order. Requires authentication and buyer ownership.
+        
+        **Note:** The `buyerPrivateKey` parameter is required for development/testing environments where the backend needs to sign transactions on behalf of the buyer. In production, this should be handled by the frontend (e.g., MetaMask) signing transactions directly.
       operationId: fundOrder
       security:
         - bearerAuth: []
@@ -361,6 +364,12 @@ paths:
           schema:
             type: integer
             minimum: 1
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderFundRequest'
       responses:
         '200':
           description: Order funded successfully
@@ -1152,6 +1161,21 @@ components:
           type: integer
           minimum: 1
           description: Product ID to create order for
+
+    OrderFundRequest:
+      type: object
+      description: Request body for funding an order. buyerPrivateKey is optional but required in development/testing environments.
+      properties:
+        buyerPrivateKey:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{64}$'
+          description: |
+            Buyer's private key for signing the transaction. 
+            
+            **Security Warning:** This is for development/testing only. In production, transactions should be signed by the frontend (e.g., MetaMask) and sent as signed transactions, not raw private keys.
+            
+            The private key must match the buyer's wallet address associated with the order.
+          example: '0xc87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3'
 
     OrderShipRequest:
       type: object

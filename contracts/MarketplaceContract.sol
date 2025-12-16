@@ -120,16 +120,18 @@ contract MarketplaceContract {
         address seller
     );
 
-    function createOrder(uint256 productId) public {
+    function createOrder(uint256 productId, address buyer) public {
         Product memory product = productById[productId];
         require(product.id != 0, "Product does not exist");
         require(product.isActive, "Product is not active");
+        require(buyer != address(0), "Buyer address cannot be zero");
+        require(buyer != product.seller, "Buyer cannot purchase their own product");
 
         uint256 orderId = nextOrderId++;
         Order memory newOrder = Order({
             id: orderId,
             productId: productId,
-            buyer: msg.sender,
+            buyer: buyer,
             seller: product.seller,
             escrowId: 0, // to be set when escrow is created
             courierJobId: 0, // to be set when courier job is created
@@ -138,7 +140,7 @@ contract MarketplaceContract {
         });
         orders.push(newOrder);
         orderById[orderId] = newOrder;
-        emit OrderCreated(orderId, productId, msg.sender, product.seller);
+        emit OrderCreated(orderId, productId, buyer, product.seller);
     }
 
     function getOrder(uint256 orderId) public view returns (Order memory) {

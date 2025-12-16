@@ -38,7 +38,7 @@ function getMinimalABI(contractName) {
         type: 'function'
       },
       {
-        inputs: [{ name: 'productId', type: 'uint256' }],
+        inputs: [{ name: 'productId', type: 'uint256' }, { name: 'buyer', type: 'address' }],
         name: 'createOrder',
         outputs: [],
         stateMutability: 'nonpayable',
@@ -158,6 +158,13 @@ function getMinimalABI(contractName) {
       }
     ],
     CourierContract: [
+      {
+        inputs: [{ name: 'courierAddress', type: 'address' }],
+        name: 'addCourier',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function'
+      },
       {
         inputs: [{ name: 'orderId', type: 'uint256' }, { components: [{ name: 'name', type: 'string' }, { name: 'line1', type: 'string' }, { name: 'line2', type: 'string' }, { name: 'city', type: 'string' }, { name: 'state', type: 'string' }, { name: 'postalCode', type: 'string' }, { name: 'country', type: 'string' }], name: 'pickup', type: 'tuple' }, { components: [{ name: 'name', type: 'string' }, { name: 'line1', type: 'string' }, { name: 'line2', type: 'string' }, { name: 'city', type: 'string' }, { name: 'state', type: 'string' }, { name: 'postalCode', type: 'string' }, { name: 'country', type: 'string' }], name: 'dropoff', type: 'tuple' }],
         name: 'requestPickup',

@@ -2,6 +2,11 @@ import { OrderRepository } from '../repositories/OrderRepository.js';
 import { ProductRepository } from '../repositories/ProductRepository.js';
 import { OrderStatus } from '../entities/Order.js';
 import { MarketplaceContractService } from './contracts/MarketplaceContractService.js';
+import { CourierContractService } from './contracts/CourierContractService.js';
+import { ShipmentService } from './ShipmentService.js';
+import { blockchainConfig } from '../config/blockchain.js';
+import { loadContractABI } from './contracts/ContractABILoader.js';
+import { BlockchainService } from './BlockchainService.js';
 
 export class OrderService {
   static getCourierFeeWei(priceWei) {
@@ -25,17 +30,15 @@ export class OrderService {
   }
 
   static calculateTotalFee(priceWei) {
-    const courierFeeWei = this.getCourierFeeWei(priceWei);
-    const platformFeeWei = this.getPlatformFeeWei(priceWei);
     const price = BigInt(priceWei);
-    const courier = BigInt(courierFeeWei);
-    const platform = BigInt(platformFeeWei);
-    const total = price + courier + platform;
+    const courierFeeWei = BigInt('10000000000000000');
+    const platformFeeWei = (price * BigInt(5)) / BigInt(100);
+    const total = price + courierFeeWei + platformFeeWei;
     
     return {
       priceWei: priceWei,
-      courierFeeWei,
-      platformFeeWei,
+      courierFeeWei: courierFeeWei.toString(),
+      platformFeeWei: platformFeeWei.toString(),
       totalWei: total.toString()
     };
   }
@@ -134,9 +137,68 @@ export class OrderService {
       throw new Error('Product already has an active order');
     }
 
-    const txResult = await MarketplaceContractService.createOrder(productId);
+    let blockchainProduct;
+    try {
+      blockchainProduct = await MarketplaceContractService.getProduct(productId);
+      if (!blockchainProduct || Number(blockchainProduct.id) === 0) {
+        const nextProductId = await MarketplaceContractService.getNextProductId();
+        throw new Error(`Product ${productId} does not exist on blockchain. Next available product ID is ${nextProductId}. If you recently redeployed the contract, you need to re-add products to the blockchain.`);
+      }
+      if (!blockchainProduct.isActive) {
+        throw new Error('Product is not active on blockchain');
+      }
+      
+      const blockchainSeller = blockchainProduct.seller.toLowerCase();
+      if (blockchainSeller === buyerAddress.toLowerCase()) {
+        throw new Error('Buyer cannot purchase their own product');
+      }
+    } catch (error) {
+      if (error.message.includes('does not exist') || error.message.includes('not active') || error.message.includes('cannot purchase')) {
+        throw error;
+      }
+      throw new Error(`Failed to verify product on blockchain: ${error.message}`);
+    }
+
+    const txResult = await MarketplaceContractService.createOrder(productId, buyerAddress);
+
+    let blockchainOrderId = null;
+    
+    if (txResult.receipt && txResult.receipt.logs) {
+      try {
+        const contract = MarketplaceContractService.getReadOnlyContract();
+        const iface = contract.interface;
+        const orderCreatedTopic = iface.getEvent('OrderCreated').topicHash;
+        
+        for (const log of txResult.receipt.logs) {
+          if (log.topics && log.topics[0] === orderCreatedTopic) {
+            try {
+              const parsed = iface.parseLog(log);
+              if (parsed && parsed.name === 'OrderCreated' && parsed.args && parsed.args.orderId !== undefined) {
+                blockchainOrderId = Number(parsed.args.orderId);
+                break;
+              }
+            } catch (parseError) {
+              continue;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to parse OrderCreated event:', error.message);
+      }
+    }
+
+    if (!blockchainOrderId) {
+      try {
+        const contract = MarketplaceContractService.getReadOnlyContract();
+        const ordersLength = await contract.orders.length();
+        blockchainOrderId = Number(ordersLength);
+      } catch (error) {
+        throw new Error('Failed to determine order ID from transaction. Please check the OrderCreated event.');
+      }
+    }
 
     const order = await OrderRepository.create({
+      id: blockchainOrderId,
       productId,
       buyer: buyerAddress,
       seller: product.seller,
@@ -202,7 +264,7 @@ export class OrderService {
     };
   }
 
-  static async fundOrder(orderId, buyerAddress) {
+  static async fundOrder(orderId, buyerAddress, buyerPrivateKey = null) {
     if (!orderId) {
       throw new Error('Order ID is required');
     }
@@ -216,24 +278,39 @@ export class OrderService {
       throw new Error('Order not found');
     }
 
-    if (order.buyer.toLowerCase() !== buyerAddress.toLowerCase()) {
-      throw new Error('Only the buyer can fund this order');
+    const blockchainOrder = await MarketplaceContractService.getOrder(orderId);
+    if (!blockchainOrder || Number(blockchainOrder.id) === 0) {
+      throw new Error('Order does not exist on blockchain');
+    }
+
+    const blockchainBuyer = blockchainOrder.buyer.toLowerCase();
+    if (blockchainBuyer !== buyerAddress.toLowerCase()) {
+      throw new Error(`Only the buyer can fund this order. Order buyer: ${blockchainOrder.buyer}, provided: ${buyerAddress}`);
     }
 
     if (order.status !== OrderStatus.PendingPayment) {
       throw new Error(`Order cannot be funded. Current status: ${order.status}`);
     }
 
-    if (!order.product) {
-      throw new Error('Product information not found for this order');
+    const blockchainProduct = await MarketplaceContractService.getProduct(order.productId);
+    if (!blockchainProduct || Number(blockchainProduct.id) === 0) {
+      throw new Error('Product does not exist on blockchain');
     }
 
-    const fees = this.calculateTotalFee(order.product.priceWei);
+    const productPriceWei = blockchainProduct.priceWei.toString();
+    const fees = this.calculateTotalFee(productPriceWei);
 
     const txResult = await MarketplaceContractService.buyAndFund(
       orderId,
-      fees.totalWei
+      fees.totalWei,
+      buyerPrivateKey
     );
+
+    const updatedBlockchainOrder = await MarketplaceContractService.getOrder(orderId);
+    if (updatedBlockchainOrder && Number(updatedBlockchainOrder.id) !== 0) {
+      order = await OrderRepository.syncFromBlockchain(updatedBlockchainOrder);
+      order = await OrderRepository.findById(orderId);
+    }
 
     return {
       order,
@@ -280,8 +357,61 @@ export class OrderService {
       formattedRecipient
     );
 
+    let shipment = null;
+    
+    if (txResult.receipt) {
+      try {
+        const courierABI = loadContractABI('CourierContract');
+        const courierContract = BlockchainService.getContractReadOnly(
+          blockchainConfig.courierContractAddress,
+          courierABI
+        );
+        
+        const eventInterface = courierContract.interface;
+        const logs = txResult.receipt.logs || [];
+        const courierContractAddress = blockchainConfig.courierContractAddress.toLowerCase();
+        
+        for (const log of logs) {
+          if (log.address && log.address.toLowerCase() !== courierContractAddress) {
+            continue;
+          }
+          
+          try {
+            const parsedLog = eventInterface.parseLog({
+              topics: log.topics,
+              data: log.data
+            });
+            
+            if (parsedLog && parsedLog.name === 'AssignedShipment') {
+              let shipmentId = null;
+              
+              if (parsedLog.args.shipment && parsedLog.args.shipment.id) {
+                shipmentId = parsedLog.args.shipment.id;
+              } else if (parsedLog.args.shipmentId) {
+                shipmentId = parsedLog.args.shipmentId;
+              }
+              
+              if (shipmentId) {
+                shipment = await ShipmentService.syncShipmentFromBlockchain(
+                  Number(shipmentId)
+                );
+                break;
+              }
+            }
+          } catch (parseError) {
+            continue;
+          }
+        }
+      } catch (error) {
+        console.warn('Could not sync shipment from transaction receipt:', error.message);
+      }
+    }
+
+    const updatedOrder = await OrderRepository.findById(orderId);
+
     return {
-      order,
+      order: updatedOrder,
+      shipment,
       transaction: txResult
     };
   }

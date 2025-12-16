@@ -52,13 +52,55 @@ export class MarketplaceContractService {
     return await contract.getProduct(productId);
   }
 
-  static async createOrder(productId) {
+  static async getNextProductId() {
+    const contract = this.getReadOnlyContract();
+    try {
+      return await contract.nextProductId();
+    } catch (error) {
+      console.warn('Could not get nextProductId:', error.message);
+      return null;
+    }
+  }
+
+  static async createOrder(productId, buyerAddress) {
     const contract = this.getContract();
+    const formattedAddress = BlockchainService.formatAddress(buyerAddress);
+    
+    console.log(`Creating order - productId: ${productId} (type: ${typeof productId}), buyerAddress: ${formattedAddress}`);
+    
+    const product = await this.getProduct(productId);
+    console.log(`Product verification - id: ${product.id}, isActive: ${product.isActive}, seller: ${product.seller}`);
+    
+    if (Number(product.id) === 0) {
+      throw new Error('Product does not exist on blockchain');
+    }
+    if (!product.isActive) {
+      throw new Error('Product is not active on blockchain');
+    }
+    if (product.seller.toLowerCase() === formattedAddress.toLowerCase()) {
+      throw new Error('Buyer cannot purchase their own product');
+    }
+    if (formattedAddress === '0x0000000000000000000000000000000000000000') {
+      throw new Error('Buyer address cannot be zero');
+    }
+    
+    try {
+      const signer = BlockchainService.getSigner();
+      const signerAddress = await signer.getAddress();
+      console.log(`Transaction will be sent from: ${signerAddress}`);
+    } catch (error) {
+      console.warn('Could not get signer address:', error.message);
+    }
+    
+    const productIdNum = typeof productId === 'bigint' ? productId : BigInt(productId);
+    console.log(`Calling createOrder with productId: ${productIdNum}, buyer: ${formattedAddress}`);
+    
     return await BlockchainService.sendTransaction(
       contract,
       'createOrder',
       null,
-      productId
+      productIdNum,
+      formattedAddress
     );
   }
 
@@ -67,8 +109,22 @@ export class MarketplaceContractService {
     return await contract.getOrder(orderId);
   }
 
-  static async buyAndFund(orderId, valueWei) {
-    const contract = this.getContract();
+  static async buyAndFund(orderId, valueWei, buyerPrivateKey = null) {
+    let contract;
+    if (buyerPrivateKey) {
+      const buyerSigner = BlockchainService.createSignerFromPrivateKey(buyerPrivateKey);
+      if (buyerSigner) {
+        contract = BlockchainService.getContract(
+          blockchainConfig.marketplaceContractAddress,
+          this.abi,
+          buyerSigner
+        );
+      } else {
+        contract = this.getContract();
+      }
+    } else {
+      contract = this.getContract();
+    }
     return await BlockchainService.sendTransaction(
       contract,
       'buyAndFund',
