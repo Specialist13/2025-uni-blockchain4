@@ -1,0 +1,4 @@
+{
+  "abi": [],
+  "note": "This file should be populated with the compiled ABI from build/contracts/EscrowContract.json after running 'truffle compile'. For now, the contract service will use minimal ABI definitions."
+}
