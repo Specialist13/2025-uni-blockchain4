@@ -10,6 +10,7 @@ import { Escrow } from '../entities/Escrow.js';
 import { Shipment } from '../entities/Shipment.js';
 import { AddressInfo } from '../entities/AddressInfo.js';
 import { User } from '../entities/User.js';
+import { ProcessedEvent } from '../entities/ProcessedEvent.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,7 +21,7 @@ const backendRoot = path.resolve(__dirname, '../..');
 export const AppDataSource = new DataSource({
   type: 'sqlite',
   database: join(backendRoot, 'database.sqlite'),
-  entities: [Product, Order, Escrow, Shipment, AddressInfo, User],
+  entities: [Product, Order, Escrow, Shipment, AddressInfo, User, ProcessedEvent],
   synchronize: process.env.NODE_ENV !== 'production', // Auto-sync schema in development
   logging: process.env.NODE_ENV === 'development',
 });
