@@ -523,49 +523,45 @@ export class EventIndexerService {
     
     try {
       let events = [];
+      const provider = BlockchainService.getProvider();
       
+      const filter = {
+        address: contractAddress,
+        fromBlock,
+        toBlock
+      };
+      
+      const logs = await provider.getLogs(filter);
+      
+      let contract;
       if (contractType === 'marketplace') {
-        const contract = MarketplaceContractService.getReadOnlyContract();
-        const allEvents = await contract.queryFilter({}, fromBlock, toBlock);
-        events = allEvents.map(event => ({
-          eventName: event.eventName,
-          contractAddress,
-          contractType,
-          args: event.args,
-          event: {
-            transactionHash: event.transactionHash,
-            blockNumber: event.blockNumber,
-            logIndex: event.logIndex
-          }
-        }));
+        contract = MarketplaceContractService.getReadOnlyContract();
       } else if (contractType === 'escrow') {
-        const contract = EscrowContractService.getReadOnlyContract();
-        const allEvents = await contract.queryFilter({}, fromBlock, toBlock);
-        events = allEvents.map(event => ({
-          eventName: event.eventName,
-          contractAddress,
-          contractType,
-          args: event.args,
-          event: {
-            transactionHash: event.transactionHash,
-            blockNumber: event.blockNumber,
-            logIndex: event.logIndex
-          }
-        }));
+        contract = EscrowContractService.getReadOnlyContract();
       } else if (contractType === 'courier') {
-        const contract = CourierContractService.getReadOnlyContract();
-        const allEvents = await contract.queryFilter({}, fromBlock, toBlock);
-        events = allEvents.map(event => ({
-          eventName: event.eventName,
-          contractAddress,
-          contractType,
-          args: event.args,
-          event: {
-            transactionHash: event.transactionHash,
-            blockNumber: event.blockNumber,
-            logIndex: event.logIndex
+        contract = CourierContractService.getReadOnlyContract();
+      }
+      
+      for (const log of logs) {
+        try {
+          const parsedLog = contract.interface.parseLog(log);
+          
+          if (parsedLog) {
+            events.push({
+              eventName: parsedLog.name,
+              contractAddress,
+              contractType,
+              args: parsedLog.args,
+              event: {
+                transactionHash: log.transactionHash,
+                blockNumber: log.blockNumber,
+                logIndex: log.index
+              }
+            });
           }
-        }));
+        } catch (parseError) {
+          console.warn(`Failed to parse log ${log.transactionHash}:`, parseError.message);
+        }
       }
 
       for (const eventData of events) {

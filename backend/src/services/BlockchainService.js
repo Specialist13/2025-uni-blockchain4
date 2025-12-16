@@ -47,12 +47,12 @@ export class BlockchainService {
     return this.signer;
   }
 
-  static async getContract(address, abi) {
+  static getContract(address, abi) {
     const signer = this.getSigner();
     return new ethers.Contract(address, abi, signer);
   }
 
-  static async getContractReadOnly(address, abi) {
+  static getContractReadOnly(address, abi) {
     const provider = this.getProvider();
     return new ethers.Contract(address, abi, provider);
   }
