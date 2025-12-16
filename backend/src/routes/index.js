@@ -5,6 +5,7 @@ import authRoutes from './auth.js';
 import productRoutes from './products.js';
 import orderRoutes from './orders.js';
 import escrowRoutes from './escrows.js';
+import shipmentRoutes from './shipments.js';
 
 const router = express.Router();
 
@@ -19,6 +20,9 @@ router.use('/orders', orderRoutes);
 
 // Escrow routes
 router.use('/escrows', escrowRoutes);
+
+// Shipment routes
+router.use('/shipments', shipmentRoutes);
 
 // Public route example
 router.get('/public', BaseController.handleAsync(ExampleController.getPublicData));
