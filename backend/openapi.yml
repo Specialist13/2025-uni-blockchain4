@@ -1,10 +1,15 @@
 openapi: 3.0.3
 info:
   title: C2C Marketplace API
-  description: API documentation for the C2C Online Marketplace backend
+  description: |
+    API documentation for the C2C Online Marketplace backend.
+    
+    **Role System:**
+    - Regular users (role=null): Can both create products (sell) and create orders (buy). This is the default role.
+    - Couriers (role='courier'): Have access to courier-specific endpoints for managing shipments.
   version: 1.0.0
 servers:
-  - url: http://localhost:3000/api
+  - url: http://localhost:3001/api
     description: Local development server
   - url: https://api.example.com/api
     description: Production server
@@ -17,7 +22,7 @@ tags:
   - name: Escrows
     description: Escrow management endpoints
   - name: Shipments
-    description: Shipment tracking and courier management endpoints
+    description: Shipment tracking and courier management endpoints. Includes courier-specific endpoints for available shipments, assigned shipments, and courier dashboard.
   - name: Auth
     description: Authentication endpoints
 
@@ -62,16 +67,20 @@ paths:
             type: boolean
         - name: minPrice
           in: query
-          description: Minimum price in Wei
+          description: Minimum price in Ether
           required: false
           schema:
-            type: string
+            type: number
+            format: float
+            minimum: 0
         - name: maxPrice
           in: query
-          description: Maximum price in Wei
+          description: Maximum price in Ether
           required: false
           schema:
-            type: string
+            type: number
+            format: float
+            minimum: 0
         - name: search
           in: query
           description: Search in title and description
@@ -91,7 +100,7 @@ paths:
       tags:
         - Products
       summary: Create a new product
-      description: Create a new product listing. Requires authentication and seller role.
+      description: Create a new product listing. Requires authentication. Regular users (role=null) can create products.
       operationId: createProduct
       security:
         - bearerAuth: []
@@ -278,7 +287,7 @@ paths:
       tags:
         - Orders
       summary: Create a new order
-      description: Create a new order for a product. Requires authentication and buyer role.
+      description: Create a new order for a product. Requires authentication. Regular users (role=null) can create orders.
       operationId: createOrder
       security:
         - bearerAuth: []
@@ -375,7 +384,7 @@ paths:
       tags:
         - Orders
       summary: Mark order as ready to ship
-      description: Mark an order as ready to ship with sender and recipient addresses. Requires authentication and seller ownership.
+      description: Mark an order as ready to ship with sender and recipient addresses. Requires authentication and seller ownership (user must be the order seller).
       operationId: markReadyToShip
       security:
         - bearerAuth: []
@@ -416,7 +425,7 @@ paths:
       tags:
         - Orders
       summary: Confirm receipt
-      description: Confirm receipt of the order. Requires authentication and buyer ownership.
+      description: Confirm receipt of the order. Requires authentication and buyer ownership (user must be the order buyer).
       operationId: confirmReceipt
       security:
         - bearerAuth: []
@@ -615,6 +624,164 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /shipments/courier/available:
+    get:
+      tags:
+        - Shipments
+      summary: List available shipments
+      description: Retrieve shipments available for courier pickup (status: Assigned). Requires authentication and courier role.
+      operationId: listAvailableShipments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /shipments/courier/assigned:
+    get:
+      tags:
+        - Shipments
+      summary: List assigned shipments
+      description: Retrieve shipments assigned to the authenticated courier. Requires authentication and courier role.
+      operationId: listCourierShipments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filter by shipment status
+          required: false
+          schema:
+            type: string
+            enum:
+              - Assigned
+              - InTransit
+              - Delivered
+        - name: activeOnly
+          in: query
+          description: Show only active shipments (Assigned or InTransit)
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /shipments/courier/dashboard:
+    get:
+      tags:
+        - Shipments
+      summary: Get courier dashboard
+      description: Retrieve courier dashboard data including statistics and active shipments. Requires authentication and courier role.
+      operationId: getCourierDashboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      description: Register a new user account. Regular users (role=null) can both buy and sell. Couriers (role='courier') have access to courier-specific endpoints.
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login user
+      description: Authenticate user and receive JWT token
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Logout user
+      description: Logout the authenticated user. Requires authentication.
+      operationId: logout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -664,7 +831,7 @@ components:
         - seller
         - title
         - description
-        - priceWei
+        - price
         - isActive
         - createdAt
       properties:
@@ -693,9 +860,11 @@ components:
           items:
             type: string
           description: Array of image URLs
-        priceWei:
-          type: string
-          description: Price in Wei
+        price:
+          type: number
+          format: float
+          minimum: 0
+          description: Price in Ether
         isActive:
           type: boolean
           description: Whether the product is active
@@ -810,7 +979,7 @@ components:
       required:
         - title
         - description
-        - priceWei
+        - price
       properties:
         title:
           type: string
@@ -819,9 +988,12 @@ components:
         description:
           type: string
           description: Product description
-        priceWei:
-          type: string
-          description: Price in Wei (must be greater than 0)
+        price:
+          type: number
+          format: float
+          minimum: 0
+          exclusiveMinimum: true
+          description: Price in Ether (must be greater than 0)
         imageUrl:
           type: string
           nullable: true
@@ -839,15 +1011,19 @@ components:
       required:
         - title
         - description
-        - priceWei
+        - price
       properties:
         title:
           type: string
           maxLength: 255
         description:
           type: string
-        priceWei:
-          type: string
+        price:
+          type: number
+          format: float
+          minimum: 0
+          exclusiveMinimum: true
+          description: Price in Ether
         imageUrl:
           type: string
           nullable: true
@@ -870,8 +1046,12 @@ components:
           maxLength: 255
         description:
           type: string
-        priceWei:
-          type: string
+        price:
+          type: number
+          format: float
+          minimum: 0
+          exclusiveMinimum: true
+          description: Price in Ether
         imageUrl:
           type: string
           nullable: true
@@ -890,8 +1070,12 @@ components:
           maxLength: 255
         description:
           type: string
-        priceWei:
-          type: string
+        price:
+          type: number
+          format: float
+          minimum: 0
+          exclusiveMinimum: true
+          description: Price in Ether
         imageUrl:
           type: string
           nullable: true
@@ -998,9 +1182,9 @@ components:
         - buyer
         - seller
         - orderId
-        - amountWei
-        - courierFeeWei
-        - platformFeeWei
+        - amount
+        - courierFee
+        - platformFee
         - fundsSecured
         - courierFeeTransferred
         - releasedToSeller
@@ -1021,15 +1205,21 @@ components:
         orderId:
           type: integer
           description: Associated order ID
-        amountWei:
-          type: string
-          description: Total amount in Wei
-        courierFeeWei:
-          type: string
-          description: Courier fee in Wei
-        platformFeeWei:
-          type: string
-          description: Platform fee in Wei
+        amount:
+          type: number
+          format: float
+          minimum: 0
+          description: Total amount in Ether
+        courierFee:
+          type: number
+          format: float
+          minimum: 0
+          description: Courier fee in Ether
+        platformFee:
+          type: number
+          format: float
+          minimum: 0
+          description: Platform fee in Ether
         fundsSecured:
           type: boolean
           description: Whether funds are secured
@@ -1118,23 +1308,190 @@ components:
     FeeCalculation:
       type: object
       required:
-        - priceWei
-        - courierFeeWei
-        - platformFeeWei
-        - totalWei
+        - price
+        - courierFee
+        - platformFee
+        - total
       properties:
-        priceWei:
+        price:
+          type: number
+          format: float
+          minimum: 0
+          description: Product price in Ether
+        courierFee:
+          type: number
+          format: float
+          minimum: 0
+          description: Courier fee in Ether
+        platformFee:
+          type: number
+          format: float
+          minimum: 0
+          description: Platform fee in Ether
+        total:
+          type: number
+          format: float
+          minimum: 0
+          description: Total amount in Ether (price + courier fee + platform fee)
+
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - isActive
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: User ID
+        email:
           type: string
-          description: Product price in Wei
-        courierFeeWei:
+          format: email
+          description: User email address
+        username:
           type: string
-          description: Courier fee in Wei
-        platformFeeWei:
+          nullable: true
+          maxLength: 255
+          description: Username
+        walletAddress:
           type: string
-          description: Platform fee in Wei
-        totalWei:
+          nullable: true
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: User wallet address
+        role:
           type: string
-          description: Total amount in Wei (price + courier fee + platform fee)
+          nullable: true
+          enum:
+            - null
+            - courier
+          description: User role. null = regular user (can buy and sell), 'courier' = courier (has access to courier endpoints)
+        bio:
+          type: string
+          nullable: true
+          description: User bio
+        avatarUrl:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Avatar URL
+        isActive:
+          type: boolean
+          description: Whether the account is active
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+        password:
+          type: string
+          minLength: 6
+          description: User password
+        username:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Username (optional)
+        role:
+          type: string
+          nullable: true
+          enum:
+            - null
+            - courier
+          default: null
+          description: User role. null = regular user (can buy and sell), 'courier' = courier (has access to courier endpoints)
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address
+        password:
+          type: string
+          description: User password
+
+    AuthResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - user
+                - token
+              properties:
+                user:
+                  $ref: '#/components/schemas/User'
+                token:
+                  type: string
+                  description: JWT authentication token
+
+    CourierDashboardResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - stats
+                - activeShipments
+                - recentShipments
+              properties:
+                stats:
+                  type: object
+                  required:
+                    - total
+                    - active
+                    - assigned
+                    - inTransit
+                    - delivered
+                  properties:
+                    total:
+                      type: integer
+                      description: Total number of shipments assigned to courier
+                    active:
+                      type: integer
+                      description: Number of active shipments (Assigned or InTransit)
+                    assigned:
+                      type: integer
+                      description: Number of shipments with status Assigned
+                    inTransit:
+                      type: integer
+                      description: Number of shipments with status InTransit
+                    delivered:
+                      type: integer
+                      description: Number of shipments with status Delivered
+                activeShipments:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Shipment'
+                  description: List of active shipments (Assigned or InTransit)
+                recentShipments:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Shipment'
+                  description: List of recent shipments (last 10)
 
   responses:
     BadRequest:
@@ -1146,7 +1503,7 @@ components:
           example:
             success: false
             error: 'Bad request'
-            message: 'Title, description, and priceWei are required'
+            message: 'Title, description, and price are required'
 
     Unauthorized:
       description: Unauthorized - authentication required or invalid token
