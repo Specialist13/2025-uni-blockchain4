@@ -5,6 +5,24 @@ import { ShipmentController } from '../controllers/ShipmentController.js';
 const router = express.Router();
 
 router.get(
+  '/courier/available',
+  BaseController.requireAuth(),
+  BaseController.handleAsync(ShipmentController.listAvailableShipments)
+);
+
+router.get(
+  '/courier/assigned',
+  BaseController.requireAuth(),
+  BaseController.handleAsync(ShipmentController.listCourierShipments)
+);
+
+router.get(
+  '/courier/dashboard',
+  BaseController.requireAuth(),
+  BaseController.handleAsync(ShipmentController.getCourierDashboard)
+);
+
+router.get(
   '/:id',
   BaseController.requireAuth(),
   BaseController.handleAsync(ShipmentController.getShipment)

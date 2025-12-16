@@ -3,14 +3,14 @@ import { AuthService } from '../services/AuthService.js';
 
 export class AuthController extends BaseController {
   static async register(req, res) {
-    const { email, password, username } = req.body;
+    const { email, password, username, role } = req.body;
 
     if (!email || !password) {
       return BaseController.badRequest(res, 'Email and password are required');
     }
 
     try {
-      const user = await AuthService.register(email, password, username);
+      const user = await AuthService.register(email, password, username, role);
       const token = AuthService.generateToken(user.id, user.email);
 
       return BaseController.success(
@@ -20,7 +20,7 @@ export class AuthController extends BaseController {
         201
       );
     } catch (error) {
-      if (error.message === 'User with this email already exists') {
+      if (error.message === 'User with this email already exists' || error.message.includes('Role must be')) {
         return BaseController.badRequest(res, error.message);
       }
       return BaseController.error(res, error, error.message, 400);

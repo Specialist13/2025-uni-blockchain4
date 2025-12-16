@@ -41,6 +41,12 @@ export const User = new EntitySchema({
       type: 'boolean',
       default: true
     },
+    role: {
+      type: 'varchar',
+      length: 50,
+      nullable: true,
+      default: null
+    },
     createdAt: {
       type: 'datetime',
       createDate: true

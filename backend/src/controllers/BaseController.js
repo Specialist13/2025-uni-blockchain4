@@ -91,4 +91,33 @@ export class BaseController {
       message
     });
   }
+
+  static hasRole(user, role) {
+    if (!user) {
+      return false;
+    }
+    return user.role === role;
+  }
+
+  static isCourier(user) {
+    return this.hasRole(user, 'courier');
+  }
+
+  static requireRole(role) {
+    return async (req, res, next) => {
+      try {
+        if (!req.user) {
+          return BaseController.unauthorized(res, 'Authentication required');
+        }
+
+        if (!this.hasRole(req.user, role)) {
+          return BaseController.forbidden(res, `This endpoint requires ${role} role`);
+        }
+
+        next();
+      } catch (error) {
+        next(error);
+      }
+    };
+  }
 }

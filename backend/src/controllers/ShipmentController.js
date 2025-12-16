@@ -162,4 +162,73 @@ export class ShipmentController extends BaseController {
       return BaseController.error(res, error, error.message, 400);
     }
   }
+
+  static async listAvailableShipments(req, res) {
+    if (!req.user) {
+      return BaseController.unauthorized(res, 'Authentication required');
+    }
+
+    if (!BaseController.isCourier(req.user)) {
+      return BaseController.forbidden(res, 'This endpoint is only available for couriers');
+    }
+
+    try {
+      const shipments = await ShipmentService.listAvailableShipments();
+      return BaseController.success(res, shipments, 'Available shipments retrieved successfully');
+    } catch (error) {
+      return BaseController.error(res, error, error.message, 500);
+    }
+  }
+
+  static async listCourierShipments(req, res) {
+    if (!req.user) {
+      return BaseController.unauthorized(res, 'Authentication required');
+    }
+
+    if (!req.user.walletAddress) {
+      return BaseController.badRequest(res, 'Wallet address must be set for user account');
+    }
+
+    if (!BaseController.isCourier(req.user)) {
+      return BaseController.forbidden(res, 'This endpoint is only available for couriers');
+    }
+
+    const { status, activeOnly } = req.query;
+
+    try {
+      const options = {
+        status: status || undefined,
+        activeOnly: activeOnly === 'true'
+      };
+
+      const shipments = await ShipmentService.listCourierShipments(
+        req.user.walletAddress,
+        options
+      );
+      return BaseController.success(res, shipments, 'Courier shipments retrieved successfully');
+    } catch (error) {
+      return BaseController.error(res, error, error.message, 500);
+    }
+  }
+
+  static async getCourierDashboard(req, res) {
+    if (!req.user) {
+      return BaseController.unauthorized(res, 'Authentication required');
+    }
+
+    if (!req.user.walletAddress) {
+      return BaseController.badRequest(res, 'Wallet address must be set for user account');
+    }
+
+    if (!BaseController.isCourier(req.user)) {
+      return BaseController.forbidden(res, 'This endpoint is only available for couriers');
+    }
+
+    try {
+      const dashboard = await ShipmentService.getCourierDashboard(req.user.walletAddress);
+      return BaseController.success(res, dashboard, 'Courier dashboard retrieved successfully');
+    } catch (error) {
+      return BaseController.error(res, error, error.message, 500);
+    }
+  }
 }

@@ -138,4 +138,51 @@ export class ShipmentService {
       transaction: txResult
     };
   }
+
+  static async listAvailableShipments() {
+    const shipments = await ShipmentRepository.findAvailableForCourier();
+    return shipments;
+  }
+
+  static async listCourierShipments(courierAddress, options = {}) {
+    if (!courierAddress) {
+      throw new Error('Courier address is required');
+    }
+
+    const { status, activeOnly } = options;
+
+    if (activeOnly) {
+      return await ShipmentRepository.findActiveByCourier(courierAddress);
+    }
+
+    if (status) {
+      return await ShipmentRepository.findByCourierAndStatus(courierAddress, status);
+    }
+
+    return await ShipmentRepository.findAssignedToCourier(courierAddress);
+  }
+
+  static async getCourierDashboard(courierAddress) {
+    if (!courierAddress) {
+      throw new Error('Courier address is required');
+    }
+
+    const allShipments = await ShipmentRepository.findAssignedToCourier(courierAddress);
+    const activeShipments = await ShipmentRepository.findActiveByCourier(courierAddress);
+    const assignedShipments = await ShipmentRepository.findByCourierAndStatus(courierAddress, ShipmentStatus.Assigned);
+    const inTransitShipments = await ShipmentRepository.findByCourierAndStatus(courierAddress, ShipmentStatus.InTransit);
+    const deliveredShipments = await ShipmentRepository.findByCourierAndStatus(courierAddress, ShipmentStatus.Delivered);
+
+    return {
+      stats: {
+        total: allShipments.length,
+        active: activeShipments.length,
+        assigned: assignedShipments.length,
+        inTransit: inTransitShipments.length,
+        delivered: deliveredShipments.length
+      },
+      activeShipments,
+      recentShipments: allShipments.slice(0, 10)
+    };
+  }
 }

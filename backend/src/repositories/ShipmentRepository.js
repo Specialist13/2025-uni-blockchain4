@@ -30,6 +30,48 @@ export class ShipmentRepository {
     });
   }
 
+  static async findAvailableForCourier() {
+    const repository = this.getRepository();
+    return await repository.find({ 
+      where: { status: ShipmentStatus.Assigned },
+      relations: ['order', 'addresses'],
+      order: { createdAt: 'DESC' }
+    });
+  }
+
+  static async findByCourierAndStatus(courierAddress, status) {
+    const repository = this.getRepository();
+    return await repository.find({ 
+      where: { 
+        courier: courierAddress,
+        status: status
+      },
+      relations: ['order', 'addresses'],
+      order: { createdAt: 'DESC' }
+    });
+  }
+
+  static async findAssignedToCourier(courierAddress) {
+    const repository = this.getRepository();
+    return await repository.find({ 
+      where: { courier: courierAddress },
+      relations: ['order', 'addresses'],
+      order: { createdAt: 'DESC' }
+    });
+  }
+
+  static async findActiveByCourier(courierAddress) {
+    const repository = this.getRepository();
+    return await repository.find({ 
+      where: { 
+        courier: courierAddress,
+        status: [ShipmentStatus.Assigned, ShipmentStatus.InTransit]
+      },
+      relations: ['order', 'addresses'],
+      order: { createdAt: 'DESC' }
+    });
+  }
+
   static async create(shipmentData) {
     const repository = this.getRepository();
     const shipment = repository.create(shipmentData);

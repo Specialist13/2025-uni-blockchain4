@@ -15,9 +15,13 @@ export class AuthService {
     return process.env.JWT_EXPIRES_IN || '7d';
   }
 
-  static async register(email, password, username = null) {
+  static async register(email, password, username = null, role = null) {
     if (!email || !password) {
       throw new Error('Email and password are required');
+    }
+
+    if (role !== null && role !== 'courier') {
+      throw new Error('Role must be null (regular user) or "courier"');
     }
 
     const existingUser = await UserRepository.findByEmail(email);
@@ -30,7 +34,8 @@ export class AuthService {
     const user = await UserRepository.create({
       email,
       password: hashedPassword,
-      username
+      username,
+      role
     });
 
     const { password: _, ...userWithoutPassword } = user;
