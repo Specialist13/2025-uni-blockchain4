@@ -1,0 +1,523 @@
+openapi: 3.0.3
+info:
+  title: C2C Marketplace API
+  description: API documentation for the C2C Online Marketplace backend
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+  - url: https://api.example.com/api
+    description: Production server
+
+tags:
+  - name: Products
+    description: Product listing and management endpoints
+  - name: Auth
+    description: Authentication endpoints
+
+paths:
+  /products:
+    get:
+      tags:
+        - Products
+      summary: List all products
+      description: Retrieve a paginated list of products with optional filtering
+      operationId: listProducts
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: seller
+          in: query
+          description: Filter by seller wallet address
+          required: false
+          schema:
+            type: string
+            pattern: '^0x[a-fA-F0-9]{40}$'
+        - name: isActive
+          in: query
+          description: Filter by active status
+          required: false
+          schema:
+            type: boolean
+        - name: minPrice
+          in: query
+          description: Minimum price in Wei
+          required: false
+          schema:
+            type: string
+        - name: maxPrice
+          in: query
+          description: Maximum price in Wei
+          required: false
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Search in title and description
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductListResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      description: Create a new product listing. Requires authentication and seller role.
+      operationId: createProduct
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductCreateFormRequest'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Get product details
+      description: Retrieve detailed information about a specific product including relations
+      operationId: getProduct
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    put:
+      tags:
+        - Products
+      summary: Update product details
+      description: Update product information. Requires authentication and seller ownership.
+      operationId: updateProduct
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductUpdateFormRequest'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      tags:
+        - Products
+      summary: Deactivate product
+      description: Deactivate a product listing. Requires authentication and seller ownership.
+      operationId: deactivateProduct
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product ID
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Product deactivated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from authentication endpoint
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error type or code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: string
+          description: Additional error details (only in development)
+
+    SuccessResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          description: Response data (varies by endpoint)
+
+    Product:
+      type: object
+      required:
+        - id
+        - seller
+        - title
+        - description
+        - priceWei
+        - isActive
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: Product ID
+        seller:
+          type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Seller wallet address
+        title:
+          type: string
+          maxLength: 255
+          description: Product title
+        description:
+          type: string
+          description: Product description
+        imageUrl:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Single image URL
+        imageUrls:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Array of image URLs
+        priceWei:
+          type: string
+          description: Price in Wei
+        isActive:
+          type: boolean
+          description: Whether the product is active
+        createdAt:
+          type: string
+          format: date-time
+          description: Product creation timestamp
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+          description: Related orders (only included when relations are loaded)
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        productId:
+          type: integer
+        buyer:
+          type: string
+        seller:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          description: Current page number
+        limit:
+          type: integer
+          description: Items per page
+        total:
+          type: integer
+          description: Total number of items
+        totalPages:
+          type: integer
+          description: Total number of pages
+
+    ProductListResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - products
+                - pagination
+              properties:
+                products:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Product'
+                pagination:
+                  $ref: '#/components/schemas/Pagination'
+
+    ProductCreateRequest:
+      type: object
+      required:
+        - title
+        - description
+        - priceWei
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          description: Product title
+        description:
+          type: string
+          description: Product description
+        priceWei:
+          type: string
+          description: Price in Wei (must be greater than 0)
+        imageUrl:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Single image URL
+        imageUrls:
+          type: array
+          nullable: true
+          items:
+            type: string
+          description: Array of image URLs
+
+    ProductCreateFormRequest:
+      type: object
+      required:
+        - title
+        - description
+        - priceWei
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        priceWei:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+        imageUrls:
+          type: string
+          nullable: true
+          description: JSON stringified array of image URLs
+        images:
+          type: array
+          items:
+            type: string
+            format: binary
+          description: Image files for upload
+
+    ProductUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        priceWei:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+          maxLength: 500
+        imageUrls:
+          type: array
+          nullable: true
+          items:
+            type: string
+
+    ProductUpdateFormRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        priceWei:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+        imageUrls:
+          type: string
+          nullable: true
+          description: JSON stringified array of image URLs
+        images:
+          type: array
+          items:
+            type: string
+            format: binary
+
+  responses:
+    BadRequest:
+      description: Bad request - validation error or invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: 'Bad request'
+            message: 'Title, description, and priceWei are required'
+
+    Unauthorized:
+      description: Unauthorized - authentication required or invalid token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: 'Unauthorized'
+            message: 'Authentication required. Please provide a valid token.'
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: 'Forbidden'
+            message: 'Only the seller can update this product'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: 'Not found'
+            message: 'Product not found'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: 'An error occurred'
+            message: 'Internal server error'
