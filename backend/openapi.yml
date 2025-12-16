@@ -782,6 +782,42 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /auth/profile:
+    put:
+      tags:
+        - Auth
+      summary: Update user profile
+      description: Update user profile information including wallet address, username, bio, and avatar URL. Requires authentication. All fields are optional - only include fields you want to update.
+      operationId: updateProfile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdateRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1428,6 +1464,30 @@ components:
         password:
           type: string
           description: User password
+
+    ProfileUpdateRequest:
+      type: object
+      description: All fields are optional - only include fields you want to update
+      properties:
+        walletAddress:
+          type: string
+          nullable: true
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Ethereum wallet address (must be valid format starting with 0x and 40 hex characters)
+        username:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Username
+        bio:
+          type: string
+          nullable: true
+          description: User biography
+        avatarUrl:
+          type: string
+          nullable: true
+          maxLength: 500
+          description: Avatar image URL
 
     AuthResponse:
       allOf:

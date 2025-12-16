@@ -49,4 +49,30 @@ export class AuthController extends BaseController {
     const result = AuthService.logout();
     return BaseController.success(res, result, result.message);
   }
+
+  static async updateProfile(req, res) {
+    if (!req.user) {
+      return BaseController.unauthorized(res, 'Authentication required');
+    }
+
+    const { walletAddress, username, bio, avatarUrl } = req.body;
+
+    try {
+      const user = await AuthService.updateProfile(req.user.id, {
+        walletAddress,
+        username,
+        bio,
+        avatarUrl
+      });
+      return BaseController.success(res, user, 'Profile updated successfully');
+    } catch (error) {
+      if (error.message === 'User not found') {
+        return BaseController.notFound(res, error.message);
+      }
+      if (error.message.includes('Invalid') || error.message.includes('must be')) {
+        return BaseController.badRequest(res, error.message);
+      }
+      return BaseController.error(res, error, error.message, 400);
+    }
+  }
 }

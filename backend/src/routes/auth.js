@@ -20,4 +20,10 @@ router.post(
   BaseController.handleAsync(AuthController.logout)
 );
 
+router.put(
+  '/profile',
+  BaseController.requireAuth(),
+  BaseController.handleAsync(AuthController.updateProfile)
+);
+
 export default router;

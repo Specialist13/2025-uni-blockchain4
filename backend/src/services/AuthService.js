@@ -115,4 +115,47 @@ export class AuthService {
       throw error;
     }
   }
+
+  static async updateProfile(userId, profileData) {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const user = await UserRepository.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const updateData = {};
+
+    if (profileData.walletAddress !== undefined) {
+      const walletAddress = profileData.walletAddress.trim();
+      if (walletAddress && !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+        throw new Error('Invalid wallet address format');
+      }
+      updateData.walletAddress = walletAddress || null;
+    }
+
+    if (profileData.username !== undefined) {
+      if (profileData.username && profileData.username.length > 255) {
+        throw new Error('Username must be 255 characters or less');
+      }
+      updateData.username = profileData.username || null;
+    }
+
+    if (profileData.bio !== undefined) {
+      updateData.bio = profileData.bio || null;
+    }
+
+    if (profileData.avatarUrl !== undefined) {
+      if (profileData.avatarUrl && profileData.avatarUrl.length > 500) {
+        throw new Error('Avatar URL must be 500 characters or less');
+      }
+      updateData.avatarUrl = profileData.avatarUrl || null;
+    }
+
+    const updatedUser = await UserRepository.update(userId, updateData);
+    const { password: _, ...userWithoutPassword } = updatedUser;
+    return userWithoutPassword;
+  }
 }
