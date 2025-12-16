@@ -12,6 +12,8 @@ servers:
 tags:
   - name: Products
     description: Product listing and management endpoints
+  - name: Orders
+    description: Order management endpoints
   - name: Auth
     description: Authentication endpoints
 
@@ -216,6 +218,230 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /orders:
+    get:
+      tags:
+        - Orders
+      summary: List user's orders
+      description: Retrieve a paginated list of orders for the authenticated user (both as buyer and seller)
+      operationId: listOrders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          description: Filter by order status
+          required: false
+          schema:
+            type: string
+            enum:
+              - PendingPayment
+              - PaymentSecured
+              - PreparingShipment
+              - InTransit
+              - Delivered
+              - BuyerConfirmed
+              - Completed
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      tags:
+        - Orders
+      summary: Create a new order
+      description: Create a new order for a product. Requires authentication and buyer role.
+      operationId: createOrder
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateRequest'
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Get order details
+      description: Retrieve detailed information about a specific order. Requires authentication and ownership check.
+      operationId: getOrder
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Order ID
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/{id}/fund:
+    post:
+      tags:
+        - Orders
+      summary: Fund order escrow
+      description: Fund the escrow for an order. Requires authentication and buyer ownership.
+      operationId: fundOrder
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Order ID
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Order funded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/{id}/ship:
+    post:
+      tags:
+        - Orders
+      summary: Mark order as ready to ship
+      description: Mark an order as ready to ship with sender and recipient addresses. Requires authentication and seller ownership.
+      operationId: markReadyToShip
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Order ID
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderShipRequest'
+      responses:
+        '200':
+          description: Order marked as ready to ship successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /orders/{id}/confirm:
+    post:
+      tags:
+        - Orders
+      summary: Confirm receipt
+      description: Confirm receipt of the order. Requires authentication and buyer ownership.
+      operationId: confirmReceipt
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Order ID
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Receipt confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -312,20 +538,60 @@ components:
 
     Order:
       type: object
+      required:
+        - id
+        - productId
+        - buyer
+        - seller
+        - status
+        - createdAt
       properties:
         id:
           type: integer
+          description: Order ID
         productId:
           type: integer
+          description: Product ID
         buyer:
           type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Buyer wallet address
         seller:
           type: string
+          pattern: '^0x[a-fA-F0-9]{40}$'
+          description: Seller wallet address
+        escrowId:
+          type: integer
+          nullable: true
+          description: Escrow ID (if funded)
+        courierJobId:
+          type: integer
+          nullable: true
+          description: Courier job ID (if shipped)
         status:
           type: string
+          enum:
+            - PendingPayment
+            - PaymentSecured
+            - PreparingShipment
+            - InTransit
+            - Delivered
+            - BuyerConfirmed
+            - Completed
+          description: Order status
         createdAt:
           type: string
           format: date-time
+          description: Order creation timestamp
+        product:
+          $ref: '#/components/schemas/Product'
+          description: Product details (only included when relations are loaded)
+        escrow:
+          $ref: '#/components/schemas/Escrow'
+          description: Escrow details (only included when relations are loaded)
+        shipment:
+          $ref: '#/components/schemas/Shipment'
+          description: Shipment details (only included when relations are loaded)
 
     Pagination:
       type: object
@@ -465,6 +731,153 @@ components:
           items:
             type: string
             format: binary
+
+    OrderListResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - orders
+                - pagination
+              properties:
+                orders:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Order'
+                pagination:
+                  $ref: '#/components/schemas/Pagination'
+
+    OrderCreateRequest:
+      type: object
+      required:
+        - productId
+      properties:
+        productId:
+          type: integer
+          minimum: 1
+          description: Product ID to create order for
+
+    OrderShipRequest:
+      type: object
+      required:
+        - senderAddress
+        - recipientAddress
+      properties:
+        senderAddress:
+          $ref: '#/components/schemas/AddressInfo'
+          description: Sender/pickup address
+        recipientAddress:
+          $ref: '#/components/schemas/AddressInfo'
+          description: Recipient/delivery address
+
+    AddressInfo:
+      type: object
+      required:
+        - name
+        - line1
+        - city
+        - state
+        - country
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Recipient/sender name
+        line1:
+          type: string
+          maxLength: 255
+          description: Address line 1
+        line2:
+          type: string
+          maxLength: 255
+          nullable: true
+          description: Address line 2 (optional)
+        city:
+          type: string
+          maxLength: 100
+          description: City
+        state:
+          type: string
+          maxLength: 100
+          description: State/Province
+        zip:
+          type: string
+          maxLength: 50
+          nullable: true
+          description: ZIP/Postal code
+        postalCode:
+          type: string
+          maxLength: 50
+          nullable: true
+          description: Postal code (alternative to zip)
+        country:
+          type: string
+          maxLength: 100
+          description: Country
+
+    Escrow:
+      type: object
+      properties:
+        id:
+          type: integer
+        buyer:
+          type: string
+        seller:
+          type: string
+        orderId:
+          type: integer
+        amountWei:
+          type: string
+        courierFeeWei:
+          type: string
+        platformFeeWei:
+          type: string
+        fundsSecured:
+          type: boolean
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Shipment:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        courier:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    FeeCalculation:
+      type: object
+      required:
+        - priceWei
+        - courierFeeWei
+        - platformFeeWei
+        - totalWei
+      properties:
+        priceWei:
+          type: string
+          description: Product price in Wei
+        courierFeeWei:
+          type: string
+          description: Courier fee in Wei
+        platformFeeWei:
+          type: string
+          description: Platform fee in Wei
+        totalWei:
+          type: string
+          description: Total amount in Wei (price + courier fee + platform fee)
 
   responses:
     BadRequest:
