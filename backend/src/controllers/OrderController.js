@@ -31,7 +31,7 @@ export class OrderController extends BaseController {
       const result = await OrderService.listOrders(options);
       
       if (result.orders) {
-        result.orders = result.orders.map(order => this.convertOrderToEther(order));
+        result.orders = result.orders.map(order => OrderController.convertOrderToEther(order));
       }
       
       return BaseController.success(res, result, 'Orders retrieved successfully');
@@ -63,7 +63,7 @@ export class OrderController extends BaseController {
         return BaseController.forbidden(res, 'You can only view your own orders');
       }
 
-      const orderResponse = this.convertOrderToEther(order);
+      const orderResponse = OrderController.convertOrderToEther(order);
       return BaseController.success(res, orderResponse, 'Order retrieved successfully');
     } catch (error) {
       if (error.message === 'Order not found') {
@@ -93,7 +93,7 @@ export class OrderController extends BaseController {
         parseInt(productId, 10),
         req.user.walletAddress
       );
-      const orderResponse = this.convertOrderToEther(order);
+      const orderResponse = OrderController.convertOrderToEther(order);
       return BaseController.success(
         res,
         orderResponse,
@@ -133,7 +133,7 @@ export class OrderController extends BaseController {
       );
       
       const resultResponse = {
-        order: result.order ? this.convertOrderToEther(result.order) : result.order,
+        order: result.order ? OrderController.convertOrderToEther(result.order) : result.order,
         fees: result.fees ? {
           price: WeiConverter.weiToEther(result.fees.priceWei),
           courierFee: WeiConverter.weiToEther(result.fees.courierFeeWei),
@@ -195,7 +195,7 @@ export class OrderController extends BaseController {
       );
       const resultResponse = result.order ? {
         ...result,
-        order: this.convertOrderToEther(result.order)
+        order: OrderController.convertOrderToEther(result.order)
       } : result;
       return BaseController.success(
         res,
@@ -241,7 +241,7 @@ export class OrderController extends BaseController {
       );
       const resultResponse = result.order ? {
         ...result,
-        order: this.convertOrderToEther(result.order)
+        order: OrderController.convertOrderToEther(result.order)
       } : result;
       return BaseController.success(
         res,

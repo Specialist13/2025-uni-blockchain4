@@ -1,5 +1,6 @@
 import { getRepository } from '../database/connection.js';
 import { Order, OrderStatus } from '../entities/Order.js';
+import { Not } from 'typeorm';
 
 export class OrderRepository {
   static getRepository() {
@@ -38,6 +39,16 @@ export class OrderRepository {
     });
   }
 
+  static async findActiveByProductId(productId) {
+    const repository = this.getRepository();
+    return await repository.find({
+      where: {
+        productId,
+        status: Not(OrderStatus.Completed)
+      }
+    });
+  }
+
   static async create(orderData) {
     const repository = this.getRepository();
     const order = repository.create(orderData);
@@ -67,7 +78,6 @@ export class OrderRepository {
     const orderData = {
       id: Number(blockchainOrder.id),
       productId: Number(blockchainOrder.productId),
-      buyer: blockchainOrder.buyer,
       seller: blockchainOrder.seller,
       escrowId: blockchainOrder.escrowId ? Number(blockchainOrder.escrowId) : null,
       courierJobId: blockchainOrder.courierJobId ? Number(blockchainOrder.courierJobId) : null,
@@ -76,8 +86,14 @@ export class OrderRepository {
     };
 
     if (existing) {
+      if (!existing.buyer) {
+        orderData.buyer = blockchainOrder.buyer;
+      } else {
+        orderData.buyer = existing.buyer;
+      }
       return await this.update(existing.id, orderData);
     } else {
+      orderData.buyer = blockchainOrder.buyer;
       return await this.create(orderData);
     }
   }

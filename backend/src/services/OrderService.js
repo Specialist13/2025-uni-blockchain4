@@ -129,6 +129,11 @@ export class OrderService {
       throw new Error('Buyer cannot purchase their own product');
     }
 
+    const existingOrders = await OrderRepository.findActiveByProductId(productId);
+    if (existingOrders.length > 0) {
+      throw new Error('Product already has an active order');
+    }
+
     const txResult = await MarketplaceContractService.createOrder(productId);
 
     const order = await OrderRepository.create({
