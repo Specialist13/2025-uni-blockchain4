@@ -1,5 +1,6 @@
 import { BaseController } from './BaseController.js';
 import { OrderService } from '../services/OrderService.js';
+import { WeiConverter } from '../utils/weiConverter.js';
 
 export class OrderController extends BaseController {
   static async listOrders(req, res) {
@@ -28,6 +29,11 @@ export class OrderController extends BaseController {
 
     try {
       const result = await OrderService.listOrders(options);
+      
+      if (result.orders) {
+        result.orders = result.orders.map(order => this.convertOrderToEther(order));
+      }
+      
       return BaseController.success(res, result, 'Orders retrieved successfully');
     } catch (error) {
       return BaseController.error(res, error, error.message, 500);
@@ -57,7 +63,8 @@ export class OrderController extends BaseController {
         return BaseController.forbidden(res, 'You can only view your own orders');
       }
 
-      return BaseController.success(res, order, 'Order retrieved successfully');
+      const orderResponse = this.convertOrderToEther(order);
+      return BaseController.success(res, orderResponse, 'Order retrieved successfully');
     } catch (error) {
       if (error.message === 'Order not found') {
         return BaseController.notFound(res, error.message);
@@ -86,9 +93,10 @@ export class OrderController extends BaseController {
         parseInt(productId, 10),
         req.user.walletAddress
       );
+      const orderResponse = this.convertOrderToEther(order);
       return BaseController.success(
         res,
-        order,
+        orderResponse,
         'Order created successfully',
         201
       );
@@ -123,9 +131,21 @@ export class OrderController extends BaseController {
         parseInt(id, 10),
         req.user.walletAddress
       );
+      
+      const resultResponse = {
+        order: result.order ? this.convertOrderToEther(result.order) : result.order,
+        fees: result.fees ? {
+          price: WeiConverter.weiToEther(result.fees.priceWei),
+          courierFee: WeiConverter.weiToEther(result.fees.courierFeeWei),
+          platformFee: WeiConverter.weiToEther(result.fees.platformFeeWei),
+          total: WeiConverter.weiToEther(result.fees.totalWei)
+        } : result.fees,
+        transaction: result.transaction
+      };
+      
       return BaseController.success(
         res,
-        result,
+        resultResponse,
         'Order funded successfully'
       );
     } catch (error) {
@@ -173,9 +193,13 @@ export class OrderController extends BaseController {
         recipientAddress,
         req.user.walletAddress
       );
+      const resultResponse = result.order ? {
+        ...result,
+        order: this.convertOrderToEther(result.order)
+      } : result;
       return BaseController.success(
         res,
-        result,
+        resultResponse,
         'Order marked as ready to ship successfully'
       );
     } catch (error) {
@@ -215,9 +239,13 @@ export class OrderController extends BaseController {
         parseInt(id, 10),
         req.user.walletAddress
       );
+      const resultResponse = result.order ? {
+        ...result,
+        order: this.convertOrderToEther(result.order)
+      } : result;
       return BaseController.success(
         res,
-        result,
+        resultResponse,
         'Receipt confirmed successfully'
       );
     } catch (error) {
@@ -232,5 +260,21 @@ export class OrderController extends BaseController {
       }
       return BaseController.error(res, error, error.message, 400);
     }
+  }
+
+  static convertOrderToEther(order) {
+    if (!order) return order;
+    
+    const converted = { ...order };
+    
+    if (order.product) {
+      const { priceWei, ...productRest } = order.product;
+      converted.product = {
+        ...productRest,
+        price: WeiConverter.weiToEther(priceWei)
+      };
+    }
+    
+    return converted;
   }
 }

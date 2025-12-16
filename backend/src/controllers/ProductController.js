@@ -1,5 +1,6 @@
 import { BaseController } from './BaseController.js';
 import { ProductService } from '../services/ProductService.js';
+import { WeiConverter } from '../utils/weiConverter.js';
 
 export class ProductController extends BaseController {
   static async listProducts(req, res) {
@@ -18,13 +19,24 @@ export class ProductController extends BaseController {
       limit: limit ? parseInt(limit, 10) : undefined,
       seller,
       isActive: isActive !== undefined ? isActive === 'true' : undefined,
-      minPrice: minPrice ? minPrice : undefined,
-      maxPrice: maxPrice ? maxPrice : undefined,
+      minPrice: minPrice ? WeiConverter.etherToWei(minPrice) : undefined,
+      maxPrice: maxPrice ? WeiConverter.etherToWei(maxPrice) : undefined,
       search
     };
 
     try {
       const result = await ProductService.listProducts(options);
+      
+      if (result.products) {
+        result.products = result.products.map(product => {
+          const { priceWei, ...rest } = product;
+          return {
+            ...rest,
+            price: WeiConverter.weiToEther(priceWei)
+          };
+        });
+      }
+      
       return BaseController.success(res, result, 'Products retrieved successfully');
     } catch (error) {
       return BaseController.error(res, error, error.message, 500);
@@ -40,7 +52,12 @@ export class ProductController extends BaseController {
 
     try {
       const product = await ProductService.getProduct(parseInt(id, 10));
-      return BaseController.success(res, product, 'Product retrieved successfully');
+      const { priceWei, ...rest } = product;
+      const productResponse = {
+        ...rest,
+        price: WeiConverter.weiToEther(priceWei)
+      };
+      return BaseController.success(res, productResponse, 'Product retrieved successfully');
     } catch (error) {
       if (error.message === 'Product not found') {
         return BaseController.notFound(res, error.message);
@@ -50,7 +67,7 @@ export class ProductController extends BaseController {
   }
 
   static async createProduct(req, res) {
-    const { title, description, priceWei, imageUrl, imageUrls } = req.body;
+    const { title, description, price, priceWei, imageUrl, imageUrls } = req.body;
 
     if (!req.user) {
       return BaseController.unauthorized(res, 'Authentication required');
@@ -61,13 +78,19 @@ export class ProductController extends BaseController {
     }
 
     try {
+      const priceWeiValue = price ? WeiConverter.etherToWei(price) : priceWei;
       const product = await ProductService.createProduct(
-        { title, description, priceWei, imageUrl, imageUrls },
+        { title, description, priceWei: priceWeiValue, imageUrl, imageUrls },
         req.user.walletAddress
       );
+      const { priceWei: productPriceWei, ...rest } = product;
+      const productResponse = {
+        ...rest,
+        price: WeiConverter.weiToEther(productPriceWei)
+      };
       return BaseController.success(
         res,
-        product,
+        productResponse,
         'Product created successfully',
         201
       );
@@ -81,7 +104,7 @@ export class ProductController extends BaseController {
 
   static async updateProduct(req, res) {
     const { id } = req.params;
-    const { title, description, priceWei, imageUrl, imageUrls } = req.body;
+    const { title, description, price, priceWei, imageUrl, imageUrls } = req.body;
 
     if (!req.user) {
       return BaseController.unauthorized(res, 'Authentication required');
@@ -96,12 +119,18 @@ export class ProductController extends BaseController {
     }
 
     try {
+      const priceWeiValue = price !== undefined ? WeiConverter.etherToWei(price) : priceWei;
       const product = await ProductService.updateProduct(
         parseInt(id, 10),
-        { title, description, priceWei, imageUrl, imageUrls },
+        { title, description, priceWei: priceWeiValue, imageUrl, imageUrls },
         req.user.walletAddress
       );
-      return BaseController.success(res, product, 'Product updated successfully');
+      const { priceWei: productPriceWei, ...rest } = product;
+      const productResponse = {
+        ...rest,
+        price: WeiConverter.weiToEther(productPriceWei)
+      };
+      return BaseController.success(res, productResponse, 'Product updated successfully');
     } catch (error) {
       if (error.message === 'Product not found') {
         return BaseController.notFound(res, error.message);
@@ -136,7 +165,12 @@ export class ProductController extends BaseController {
         parseInt(id, 10),
         req.user.walletAddress
       );
-      return BaseController.success(res, product, 'Product deactivated successfully');
+      const { priceWei, ...rest } = product;
+      const productResponse = {
+        ...rest,
+        price: WeiConverter.weiToEther(priceWei)
+      };
+      return BaseController.success(res, productResponse, 'Product deactivated successfully');
     } catch (error) {
       if (error.message === 'Product not found') {
         return BaseController.notFound(res, error.message);

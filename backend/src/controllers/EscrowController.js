@@ -1,5 +1,6 @@
 import { BaseController } from './BaseController.js';
 import { EscrowService } from '../services/EscrowService.js';
+import { WeiConverter } from '../utils/weiConverter.js';
 
 export class EscrowController extends BaseController {
   static async getEscrow(req, res) {
@@ -25,7 +26,15 @@ export class EscrowController extends BaseController {
         return BaseController.forbidden(res, 'You can only view escrows for your own orders');
       }
 
-      return BaseController.success(res, escrow, 'Escrow retrieved successfully');
+      const { amountWei, courierFeeWei, platformFeeWei, ...rest } = escrow;
+      const escrowResponse = {
+        ...rest,
+        amount: WeiConverter.weiToEther(amountWei),
+        courierFee: WeiConverter.weiToEther(courierFeeWei),
+        platformFee: WeiConverter.weiToEther(platformFeeWei)
+      };
+
+      return BaseController.success(res, escrowResponse, 'Escrow retrieved successfully');
     } catch (error) {
       if (error.message === 'Escrow not found') {
         return BaseController.notFound(res, error.message);
