@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDatabase, disconnectDatabase } from './database/connection.js';
 import { BlockchainService } from './services/BlockchainService.js';
+import { EventIndexerService } from './services/EventIndexerService.js';
 
 dotenv.config();
 
@@ -48,6 +49,14 @@ async function startServer() {
     try {
       BlockchainService.initialize();
       console.log('Blockchain service initialized successfully');
+      
+      // Start event indexer (non-blocking - will warn if not configured)
+      try {
+        await EventIndexerService.start();
+        console.log('Event indexer started successfully');
+      } catch (error) {
+        console.warn('Event indexer initialization failed:', error.message);
+      }
     } catch (error) {
       console.warn('Blockchain service initialization failed (contracts may not be available):', error.message);
     }
@@ -65,12 +74,14 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM signal received: closing HTTP server');
+  await EventIndexerService.stop();
   await disconnectDatabase();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('SIGINT signal received: closing HTTP server');
+  await EventIndexerService.stop();
   await disconnectDatabase();
   process.exit(0);
 });
