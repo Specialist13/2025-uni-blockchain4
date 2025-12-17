@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { formatters } from '../../utils/formatters.js';
 import { productService } from '../../services/productService.js';
+import { orderService } from '../../services/orderService.js';
 
 export function ProductDetail({ product, onUpdate }) {
   const { user, isAuthenticated } = useAuth();
@@ -18,12 +19,23 @@ export function ProductDetail({ product, onUpdate }) {
       : [];
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!isAuthenticated()) {
       navigate('/login');
       return;
     }
-    alert('Order creation will be implemented in the Orders section');
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const order = await orderService.createOrder(product.id);
+      navigate(`/orders/${order.id}`);
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to create order');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = () => {
