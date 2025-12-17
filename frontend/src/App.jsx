@@ -5,6 +5,10 @@ import { HomePage } from './pages/HomePage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { RegisterPage } from './pages/RegisterPage.jsx';
 import { ProfilePage } from './pages/ProfilePage.jsx';
+import { ProductsPage } from './pages/ProductsPage.jsx';
+import { ProductDetailPage } from './pages/ProductDetailPage.jsx';
+import { CreateProductPage } from './pages/CreateProductPage.jsx';
+import { EditProductPage } from './pages/EditProductPage.jsx';
 import './App.css';
 
 function App() {
@@ -16,6 +20,24 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/:id" element={<ProductDetailPage />} />
+            <Route
+              path="/products/create"
+              element={
+                <ProtectedRoute>
+                  <CreateProductPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/products/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <EditProductPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/profile"
               element={
