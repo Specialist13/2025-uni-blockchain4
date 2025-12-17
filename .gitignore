@@ -129,3 +129,6 @@ coverage/
 .serverless
 .vercel
 .svelte-kit
+
+frontend/FRONTEND_IMPLEMENTATION_PLAN.md
+backend/BACKEND_IMPLEMENTATION_CHECKLIST.md
