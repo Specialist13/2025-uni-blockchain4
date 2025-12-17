@@ -1,26 +1,26 @@
 import { useState } from 'react';
-import { useWeb3 } from '../../context/Web3Context.jsx';
 import { formatters } from '../../utils/formatters.js';
 import { orderService } from '../../services/orderService.js';
 
 export function FundOrderModal({ order, onClose, onSuccess }) {
-  const { connectWallet, account, isConnected } = useWeb3();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [step, setStep] = useState('connect');
-
-  const handleConnect = async () => {
-    const result = await connectWallet();
-    if (result.success) {
-      setStep('confirm');
-    } else {
-      setError(result.error);
-    }
-  };
+  const [privateKey, setPrivateKey] = useState('');
+  const [showPrivateKey, setShowPrivateKey] = useState(false);
 
   const handleFund = async () => {
-    if (!isConnected) {
-      setError('Please connect your wallet first');
+    if (!privateKey || !privateKey.trim()) {
+      setError('Please enter your private key');
+      return;
+    }
+
+    if (!privateKey.startsWith('0x')) {
+      setError('Private key must start with 0x');
+      return;
+    }
+
+    if (privateKey.length !== 66) {
+      setError('Invalid private key format. Must be 66 characters (0x + 64 hex characters)');
       return;
     }
 
@@ -28,11 +28,12 @@ export function FundOrderModal({ order, onClose, onSuccess }) {
     setError('');
 
     try {
-      const result = await orderService.fundOrder(order.id);
+      const result = await orderService.fundOrder(order.id, privateKey.trim());
       
       if (onSuccess) {
         onSuccess(result);
       }
+      setPrivateKey('');
       onClose();
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to fund order');
@@ -69,21 +70,35 @@ export function FundOrderModal({ order, onClose, onSuccess }) {
             </div>
           </div>
 
-          {!isConnected ? (
-            <div className="wallet-connect">
-              <p>Connect your MetaMask wallet to fund this order</p>
-              <button onClick={handleConnect} className="btn-primary" disabled={loading}>
-                Connect MetaMask
-              </button>
+          <div className="private-key-input">
+            <div className="form-group">
+              <label htmlFor="privateKey">Private Key</label>
+              <div className="input-with-toggle">
+                <input
+                  id="privateKey"
+                  type={showPrivateKey ? 'text' : 'password'}
+                  value={privateKey}
+                  onChange={(e) => setPrivateKey(e.target.value)}
+                  placeholder="0x..."
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="toggle-visibility"
+                  onClick={() => setShowPrivateKey(!showPrivateKey)}
+                  disabled={loading}
+                >
+                  {showPrivateKey ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              <p className="input-hint">
+                Enter your private key to fund this order. This will be sent to the backend for transaction signing.
+              </p>
             </div>
-          ) : (
-            <div className="wallet-connected">
-              <p>Connected: {formatters.formatAddress(account)}</p>
-              <button onClick={handleFund} className="btn-primary" disabled={loading}>
-                {loading ? 'Processing...' : 'Fund Order'}
-              </button>
-            </div>
-          )}
+            <button onClick={handleFund} className="btn-primary" disabled={loading || !privateKey.trim()}>
+              {loading ? 'Processing...' : 'Fund Order'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

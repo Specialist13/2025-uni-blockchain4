@@ -25,6 +25,11 @@ export function ProductDetail({ product, onUpdate }) {
       return;
     }
 
+    if (isOwner) {
+      setError('You cannot buy your own product');
+      return;
+    }
+
     setLoading(true);
     setError('');
 

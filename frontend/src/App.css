@@ -277,12 +277,16 @@ body {
 }
 
 .welcome-message {
-  margin-top: calc(var(--spacing-unit) * 8);
+  text-align: center;
+  margin: calc(var(--spacing-unit) * 8) auto calc(var(--spacing-unit) * 4);
   padding: calc(var(--spacing-unit) * 4);
   background-color: var(--medium-gray);
   border: 1px solid var(--light-gray);
   border-radius: 8px;
-  display: inline-block;
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .welcome-message p {
@@ -1294,6 +1298,52 @@ body {
 .wallet-connected p {
   color: var(--text-gray);
   margin-bottom: calc(var(--spacing-unit) * 4);
+}
+
+.private-key-input {
+  margin-top: calc(var(--spacing-unit) * 6);
+}
+
+.input-with-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-with-toggle input {
+  padding-right: calc(var(--spacing-unit) * 12);
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.toggle-visibility {
+  position: absolute;
+  right: calc(var(--spacing-unit) * 2);
+  background: transparent;
+  border: 1px solid var(--light-gray);
+  color: var(--text-gray);
+  padding: calc(var(--spacing-unit) * 2) calc(var(--spacing-unit) * 4);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all var(--transition-speed);
+}
+
+.toggle-visibility:hover {
+  color: var(--white);
+  border-color: var(--accent-gray);
+}
+
+.toggle-visibility:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input-hint {
+  color: var(--text-gray);
+  font-size: 12px;
+  margin-top: calc(var(--spacing-unit) * 2);
+  line-height: 1.4;
 }
 
 .address-form {

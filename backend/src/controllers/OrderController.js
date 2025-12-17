@@ -18,7 +18,7 @@ export class OrderController extends BaseController {
       status
     } = req.query;
 
-    const userAddress = req.user.walletAddress;
+    const userAddress = req.user.walletAddress.toLowerCase();
 
     const options = {
       page: page ? parseInt(page, 10) : undefined,

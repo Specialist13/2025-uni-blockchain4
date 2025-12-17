@@ -37,7 +37,8 @@ export class ProductService {
     const txResult = await MarketplaceContractService.addProduct(
       title,
       description,
-      priceWeiStr
+      priceWeiStr,
+      sellerAddress
     );
 
     const product = await ProductRepository.create({

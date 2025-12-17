@@ -94,10 +94,17 @@ contract MarketplaceContract {
     );
 
     function addProduct(string memory title, string memory description, uint256 priceWei) public {
+        addProductForSeller(msg.sender, title, description, priceWei);
+    }
+
+    function addProductForSeller(address seller, string memory title, string memory description, uint256 priceWei) public {
+        require(seller != address(0), "Seller address cannot be zero");
+        require(msg.sender == owner || msg.sender == seller, "Only owner or seller can create product");
+        
         uint256 productId = nextProductId++;
         Product memory newProduct = Product({
             id: productId,
-            seller: msg.sender,
+            seller: seller,
             title: title,
             description: description,
             priceWei: priceWei,
@@ -106,7 +113,7 @@ contract MarketplaceContract {
         });
         products.push(newProduct);
         productById[productId] = newProduct;
-        emit ProductAdded(productId, msg.sender, title, priceWei);
+        emit ProductAdded(productId, seller, title, priceWei);
     }
 
     function getProduct(uint256 productId) public view returns (Product memory) {

@@ -35,16 +35,30 @@ export class MarketplaceContractService {
     );
   }
 
-  static async addProduct(title, description, priceWei) {
+  static async addProduct(title, description, priceWei, sellerAddress = null) {
     const contract = this.getContract();
-    return await BlockchainService.sendTransaction(
-      contract,
-      'addProduct',
-      null,
-      title,
-      description,
-      priceWei
-    );
+    
+    if (sellerAddress) {
+      const formattedSellerAddress = BlockchainService.formatAddress(sellerAddress);
+      return await BlockchainService.sendTransaction(
+        contract,
+        'addProductForSeller',
+        null,
+        formattedSellerAddress,
+        title,
+        description,
+        priceWei
+      );
+    } else {
+      return await BlockchainService.sendTransaction(
+        contract,
+        'addProduct',
+        null,
+        title,
+        description,
+        priceWei
+      );
+    }
   }
 
   static async getProduct(productId) {
@@ -133,8 +147,25 @@ export class MarketplaceContractService {
     );
   }
 
-  static async markReadyToShip(orderId, senderAddress, recipientAddress) {
-    const contract = this.getContract();
+  static async markReadyToShip(orderId, senderAddress, recipientAddress, sellerPrivateKey = null) {
+    let contract;
+    if (sellerPrivateKey) {
+      const sellerSigner = BlockchainService.createSignerFromPrivateKey(sellerPrivateKey);
+      if (sellerSigner) {
+        if (!this.abi) {
+          this.abi = loadContractABI('MarketplaceContract');
+        }
+        contract = BlockchainService.getContract(
+          blockchainConfig.marketplaceContractAddress,
+          this.abi,
+          sellerSigner
+        );
+      } else {
+        contract = this.getContract();
+      }
+    } else {
+      contract = this.getContract();
+    }
     
     const sender = {
       name: senderAddress.name || '',

@@ -7,6 +7,7 @@ import { ShipmentService } from './ShipmentService.js';
 import { blockchainConfig } from '../config/blockchain.js';
 import { loadContractABI } from './contracts/ContractABILoader.js';
 import { BlockchainService } from './BlockchainService.js';
+import { getPrivateKeyForAddress } from '../utils/accountHelper.js';
 
 export class OrderService {
   static getCourierFeeWei(priceWei) {
@@ -201,7 +202,7 @@ export class OrderService {
       id: blockchainOrderId,
       productId,
       buyer: buyerAddress,
-      seller: product.seller,
+      seller: blockchainProduct.seller,
       status: OrderStatus.PendingPayment
     });
 
@@ -228,17 +229,20 @@ export class OrderService {
     const queryBuilder = repository.createQueryBuilder('order');
 
     if (userAddress) {
+      const normalizedUserAddress = userAddress.toLowerCase();
       queryBuilder.andWhere(
-        '(order.buyer = :userAddress OR order.seller = :userAddress)',
-        { userAddress }
+        '(LOWER(order.buyer) = LOWER(:userAddress) OR LOWER(order.seller) = LOWER(:userAddress))',
+        { userAddress: normalizedUserAddress }
       );
     } else {
       if (buyer) {
-        queryBuilder.andWhere('order.buyer = :buyer', { buyer });
+        const normalizedBuyer = buyer.toLowerCase();
+        queryBuilder.andWhere('LOWER(order.buyer) = LOWER(:buyer)', { buyer: normalizedBuyer });
       }
 
       if (seller) {
-        queryBuilder.andWhere('order.seller = :seller', { seller });
+        const normalizedSeller = seller.toLowerCase();
+        queryBuilder.andWhere('LOWER(order.seller) = LOWER(:seller)', { seller: normalizedSeller });
       }
     }
 
@@ -351,10 +355,13 @@ export class OrderService {
     const formattedSender = this.formatAddressForContract(validatedSender);
     const formattedRecipient = this.formatAddressForContract(validatedRecipient);
 
+    const sellerPrivateKey = await getPrivateKeyForAddress(order.seller);
+
     const txResult = await MarketplaceContractService.markReadyToShip(
       orderId,
       formattedSender,
-      formattedRecipient
+      formattedRecipient,
+      sellerPrivateKey
     );
 
     let shipment = null;

@@ -31,6 +31,13 @@ function getMinimalABI(contractName) {
         type: 'function'
       },
       {
+        inputs: [{ name: 'seller', type: 'address' }, { name: 'title', type: 'string' }, { name: 'description', type: 'string' }, { name: 'priceWei', type: 'uint256' }],
+        name: 'addProductForSeller',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function'
+      },
+      {
         inputs: [{ name: 'productId', type: 'uint256' }],
         name: 'getProduct',
         outputs: [{ components: [{ name: 'id', type: 'uint256' }, { name: 'seller', type: 'address' }, { name: 'title', type: 'string' }, { name: 'description', type: 'string' }, { name: 'priceWei', type: 'uint256' }, { name: 'isActive', type: 'bool' }, { name: 'createdAt', type: 'uint256' }], name: '', type: 'tuple' }],

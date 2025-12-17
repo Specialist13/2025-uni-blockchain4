@@ -13,8 +13,15 @@ function OrdersPageContent() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'all');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'all';
+    const statusFromUrl = searchParams.get('status') || '';
+    setActiveTab(tabFromUrl);
+    setStatusFilter(statusFromUrl);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user?.walletAddress) {
@@ -28,7 +35,7 @@ function OrdersPageContent() {
     try {
       setLoading(true);
       const page = parseInt(searchParams.get('page') || '1', 10);
-      const status = searchParams.get('status') || statusFilter || undefined;
+      const status = searchParams.get('status') || undefined;
 
       const options = {
         page,
@@ -52,20 +59,19 @@ function OrdersPageContent() {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    const params = new URLSearchParams();
-    if (tab !== 'all') {
-      params.set('status', tab);
-    }
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', tab);
     params.set('page', '1');
     setSearchParams(params);
-    setStatusFilter(tab !== 'all' ? tab : '');
   };
 
   const handleStatusFilter = (status) => {
     setStatusFilter(status);
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams);
     if (status) {
       params.set('status', status);
+    } else {
+      params.delete('status');
     }
     params.set('page', '1');
     setSearchParams(params);
