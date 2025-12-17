@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { Web3Provider } from './context/Web3Context.jsx';
 import { ProtectedRoute } from './components/common/ProtectedRoute.jsx';
+import { Header } from './components/layout/Header.jsx';
 import { HomePage } from './pages/HomePage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { RegisterPage } from './pages/RegisterPage.jsx';
@@ -46,6 +47,7 @@ function App() {
         />
         <Router>
           <div className="App">
+            <Header />
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
