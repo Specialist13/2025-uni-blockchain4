@@ -361,6 +361,16 @@ export class EventIndexerService {
   static async processEvent(eventData) {
     const eventKey = `${eventData.event.transactionHash}-${eventData.event.logIndex}`;
     
+    // Double-check before processing (race condition protection)
+    const isProcessed = await ProcessedEventRepository.isProcessed(
+      eventData.event.transactionHash,
+      eventData.event.logIndex
+    );
+
+    if (isProcessed) {
+      return;
+    }
+    
     try {
       console.log(`Processing event: ${eventData.eventName} (${eventKey})`);
 
@@ -412,7 +422,11 @@ export class EventIndexerService {
 
       console.log(`Successfully processed event: ${eventData.eventName} (${eventKey})`);
     } catch (error) {
-      console.error(`Failed to process event ${eventData.eventName}:`, error);
+      // Silently ignore UNIQUE constraint errors (event already processed)
+      if (error.message && error.message.includes('UNIQUE constraint failed')) {
+        return;
+      }
+      console.error(`Failed to process event ${eventData.eventName}:`, error.message);
       throw error;
     }
   }

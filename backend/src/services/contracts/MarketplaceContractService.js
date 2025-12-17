@@ -166,8 +166,22 @@ export class MarketplaceContractService {
     );
   }
 
-  static async confirmReceipt(orderId) {
-    const contract = this.getContract();
+  static async confirmReceipt(orderId, buyerPrivateKey = null) {
+    let contract;
+    if (buyerPrivateKey) {
+      const buyerSigner = BlockchainService.createSignerFromPrivateKey(buyerPrivateKey);
+      if (buyerSigner) {
+        contract = BlockchainService.getContract(
+          blockchainConfig.marketplaceContractAddress,
+          this.abi,
+          buyerSigner
+        );
+      } else {
+        contract = this.getContract();
+      }
+    } else {
+      contract = this.getContract();
+    }
     return await BlockchainService.sendTransaction(
       contract,
       'confirmReceipt',

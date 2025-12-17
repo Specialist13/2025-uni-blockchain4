@@ -85,18 +85,57 @@ export class ShipmentService {
       throw new Error('Shipment not found');
     }
 
-    if (shipment.courier.toLowerCase() !== courierAddress.toLowerCase()) {
-      throw new Error('Only the assigned courier can confirm pickup');
+    const enableAdminBypass = process.env.ENABLE_COURIER_ADMIN_BYPASS === 'true';
+    
+    if (!enableAdminBypass) {
+      if (shipment.courier.toLowerCase() !== courierAddress.toLowerCase()) {
+        throw new Error('Only the assigned courier can confirm pickup');
+      }
     }
 
     if (shipment.status !== ShipmentStatus.Assigned) {
       throw new Error(`Shipment cannot be picked up. Current status: ${shipment.status}`);
     }
 
+    const blockchainShipment = await CourierContractService.getShipment(shipmentId);
+    
+    if (!enableAdminBypass) {
+      const blockchainCourierAddress = blockchainShipment.courier?.toLowerCase();
+      const providedCourierAddress = courierAddress.toLowerCase();
+      
+      if (blockchainCourierAddress !== providedCourierAddress) {
+        throw new Error(`Courier address mismatch. Blockchain shipment has courier: ${blockchainShipment.courier}, but provided: ${courierAddress}. The transaction must be signed by the courier's account.`);
+      }
+
+      const { BlockchainService } = await import('./BlockchainService.js');
+      const signer = BlockchainService.getSigner();
+      const signerAddress = await signer.getAddress();
+      const signerAddressLower = signerAddress.toLowerCase();
+      
+      if (signerAddressLower !== providedCourierAddress) {
+        throw new Error(`Transaction signer mismatch. The transaction will be signed by: ${signerAddress}, but the shipment is assigned to courier: ${blockchainShipment.courier}. The transaction must be signed by the courier's account. For testing, you may need to configure the backend to use the courier's private key.`);
+      }
+    } else {
+      console.warn('⚠️  ADMIN BYPASS ENABLED: Courier validation skipped. Ensure admin account is registered as a courier in the contract.');
+    }
+
     const txResult = await CourierContractService.confirmPickup(shipmentId);
 
+    let updatedBlockchainShipment;
+    let retries = 3;
+    while (retries > 0) {
+      updatedBlockchainShipment = await CourierContractService.getShipment(shipmentId);
+      if (updatedBlockchainShipment && Number(updatedBlockchainShipment.status) === 1) {
+        break;
+      }
+      retries--;
+      if (retries > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
     const updatedShipment = await ShipmentRepository.syncFromBlockchain(
-      await CourierContractService.getShipment(shipmentId)
+      updatedBlockchainShipment || await CourierContractService.getShipment(shipmentId)
     );
 
     return {
@@ -119,18 +158,60 @@ export class ShipmentService {
       throw new Error('Shipment not found');
     }
 
-    if (shipment.courier.toLowerCase() !== courierAddress.toLowerCase()) {
-      throw new Error('Only the assigned courier can confirm delivery');
+    const enableAdminBypass = process.env.ENABLE_COURIER_ADMIN_BYPASS === 'true';
+    
+    if (!enableAdminBypass) {
+      if (shipment.courier.toLowerCase() !== courierAddress.toLowerCase()) {
+        throw new Error('Only the assigned courier can confirm delivery');
+      }
     }
 
-    if (shipment.status !== ShipmentStatus.InTransit) {
-      throw new Error(`Shipment cannot be delivered. Current status: ${shipment.status}`);
+    const blockchainShipment = await CourierContractService.getShipment(shipmentId);
+    
+    const blockchainStatus = blockchainShipment.status;
+    const blockchainStatusMap = {
+      0: ShipmentStatus.Assigned,
+      1: ShipmentStatus.InTransit,
+      2: ShipmentStatus.Delivered
+    };
+    const currentBlockchainStatus = blockchainStatusMap[Number(blockchainStatus)] || shipment.status;
+    
+    if (shipment.status !== ShipmentStatus.InTransit && currentBlockchainStatus !== ShipmentStatus.InTransit) {
+      throw new Error(`Shipment cannot be delivered. Current status: ${shipment.status} (blockchain: ${currentBlockchainStatus})`);
+    }
+    
+    if (shipment.status !== ShipmentStatus.InTransit && currentBlockchainStatus === ShipmentStatus.InTransit) {
+      await ShipmentRepository.syncFromBlockchain(blockchainShipment);
+    }
+    
+    if (!enableAdminBypass) {
+      const blockchainCourierAddress = blockchainShipment.courier?.toLowerCase();
+      const providedCourierAddress = courierAddress.toLowerCase();
+      
+      if (blockchainCourierAddress !== providedCourierAddress) {
+        throw new Error(`Courier address mismatch. Blockchain shipment has courier: ${blockchainShipment.courier}, but provided: ${courierAddress}. The transaction must be signed by the courier's account.`);
+      }
+    } else {
+      console.warn('⚠️  ADMIN BYPASS ENABLED: Courier validation skipped. Ensure admin account is registered as a courier in the contract.');
     }
 
     const txResult = await CourierContractService.confirmDelivery(shipmentId);
 
+    let updatedBlockchainShipment;
+    let retries = 3;
+    while (retries > 0) {
+      updatedBlockchainShipment = await CourierContractService.getShipment(shipmentId);
+      if (updatedBlockchainShipment && Number(updatedBlockchainShipment.status) === 2) {
+        break;
+      }
+      retries--;
+      if (retries > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
     const updatedShipment = await ShipmentRepository.syncFromBlockchain(
-      await CourierContractService.getShipment(shipmentId)
+      updatedBlockchainShipment || await CourierContractService.getShipment(shipmentId)
     );
 
     return {

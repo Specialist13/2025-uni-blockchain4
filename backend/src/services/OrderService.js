@@ -273,7 +273,7 @@ export class OrderService {
       throw new Error('Buyer address is required');
     }
 
-    const order = await OrderRepository.findById(orderId);
+    let order = await OrderRepository.findById(orderId);
     if (!order) {
       throw new Error('Order not found');
     }
@@ -416,7 +416,7 @@ export class OrderService {
     };
   }
 
-  static async confirmReceipt(orderId, buyerAddress) {
+  static async confirmReceipt(orderId, buyerAddress, buyerPrivateKey = null) {
     if (!orderId) {
       throw new Error('Order ID is required');
     }
@@ -425,7 +425,7 @@ export class OrderService {
       throw new Error('Buyer address is required');
     }
 
-    const order = await OrderRepository.findById(orderId);
+    let order = await OrderRepository.findById(orderId);
     if (!order) {
       throw new Error('Order not found');
     }
@@ -434,14 +434,49 @@ export class OrderService {
       throw new Error('Only the buyer can confirm receipt');
     }
 
-    if (order.status !== OrderStatus.Delivered) {
-      throw new Error(`Order cannot be confirmed. Current status: ${order.status}`);
+    const blockchainOrder = await MarketplaceContractService.getOrder(orderId);
+    
+    const blockchainStatus = blockchainOrder.status;
+    const statusMap = {
+      0: OrderStatus.PendingPayment,
+      1: OrderStatus.PaymentSecured,
+      2: OrderStatus.PreparingShipment,
+      3: OrderStatus.InTransit,
+      4: OrderStatus.Delivered,
+      5: OrderStatus.BuyerConfirmed,
+      6: OrderStatus.Completed
+    };
+    const currentBlockchainStatus = statusMap[Number(blockchainStatus)] || order.status;
+    
+    if (order.status !== OrderStatus.Delivered && currentBlockchainStatus !== OrderStatus.Delivered) {
+      throw new Error(`Order cannot be confirmed. Current status: ${order.status} (blockchain: ${currentBlockchainStatus})`);
+    }
+    
+    if (order.status !== OrderStatus.Delivered && currentBlockchainStatus === OrderStatus.Delivered) {
+      order = await OrderRepository.syncFromBlockchain(blockchainOrder);
     }
 
-    const txResult = await MarketplaceContractService.confirmReceipt(orderId);
+    const txResult = await MarketplaceContractService.confirmReceipt(orderId, buyerPrivateKey);
+
+    let updatedBlockchainOrder;
+    let retries = 3;
+    while (retries > 0) {
+      updatedBlockchainOrder = await MarketplaceContractService.getOrder(orderId);
+      if (updatedBlockchainOrder && Number(updatedBlockchainOrder.status) >= 5) {
+        break;
+      }
+      retries--;
+      if (retries > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    const updatedOrder = await OrderRepository.syncFromBlockchain(
+      updatedBlockchainOrder || await MarketplaceContractService.getOrder(orderId)
+    );
 
     return {
-      order,
+      order: updatedOrder,
       transaction: txResult
     };
   }

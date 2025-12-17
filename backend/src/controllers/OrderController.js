@@ -223,6 +223,7 @@ export class OrderController extends BaseController {
 
   static async confirmReceipt(req, res) {
     const { id } = req.params;
+    const { buyerPrivateKey } = req.body;
 
     if (!req.user) {
       return BaseController.unauthorized(res, 'Authentication required');
@@ -239,7 +240,8 @@ export class OrderController extends BaseController {
     try {
       const result = await OrderService.confirmReceipt(
         parseInt(id, 10),
-        req.user.walletAddress
+        req.user.walletAddress,
+        buyerPrivateKey || null
       );
       const resultResponse = result.order ? {
         ...result,

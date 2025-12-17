@@ -68,8 +68,22 @@ export class CourierContractService {
     );
   }
 
-  static async confirmPickup(shipmentId) {
-    const contract = this.getContract();
+  static async confirmPickup(shipmentId, courierPrivateKey = null) {
+    let contract;
+    if (courierPrivateKey) {
+      const courierSigner = BlockchainService.createSignerFromPrivateKey(courierPrivateKey);
+      if (courierSigner) {
+        contract = BlockchainService.getContract(
+          blockchainConfig.courierContractAddress,
+          this.abi,
+          courierSigner
+        );
+      } else {
+        contract = this.getContract();
+      }
+    } else {
+      contract = this.getContract();
+    }
     return await BlockchainService.sendTransaction(
       contract,
       'confirmPickup',
@@ -78,8 +92,22 @@ export class CourierContractService {
     );
   }
 
-  static async confirmDelivery(shipmentId) {
-    const contract = this.getContract();
+  static async confirmDelivery(shipmentId, courierPrivateKey = null) {
+    let contract;
+    if (courierPrivateKey) {
+      const courierSigner = BlockchainService.createSignerFromPrivateKey(courierPrivateKey);
+      if (courierSigner) {
+        contract = BlockchainService.getContract(
+          blockchainConfig.courierContractAddress,
+          this.abi,
+          courierSigner
+        );
+      } else {
+        contract = this.getContract();
+      }
+    } else {
+      contract = this.getContract();
+    }
     return await BlockchainService.sendTransaction(
       contract,
       'confirmDelivery',
@@ -90,7 +118,93 @@ export class CourierContractService {
 
   static async getShipment(shipmentId) {
     const contract = this.getReadOnlyContract();
-    return await contract.shipmentById(shipmentId);
+    
+    try {
+      const result = await contract.shipmentById(shipmentId);
+      
+      if (result && typeof result === 'object') {
+        if ('id' in result && 'orderId' in result && 'courier' in result) {
+          return result;
+        }
+        
+        if (Array.isArray(result) && result.length >= 10) {
+          const [
+            id,
+            orderId,
+            courier,
+            pickup,
+            dropoff,
+            trackingNumber,
+            status,
+            createdAt,
+            pickedUpAt,
+            deliveredAt
+          ] = result;
+          
+          return {
+            id,
+            orderId,
+            courier,
+            pickup,
+            dropoff,
+            trackingNumber,
+            status,
+            createdAt,
+            pickedUpAt,
+            deliveredAt
+          };
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      if (error.message && error.message.includes('could not decode result data')) {
+        const { BlockchainService } = await import('../BlockchainService.js');
+        const provider = BlockchainService.getProvider();
+        const iface = contract.interface;
+        const functionFragment = iface.getFunction('shipmentById');
+        
+        const data = iface.encodeFunctionData(functionFragment, [shipmentId]);
+        const rawResult = await provider.call({
+          to: contract.target,
+          data: data
+        });
+        
+        const decoded = iface.decodeFunctionResult(functionFragment, rawResult);
+        
+        if (Array.isArray(decoded) && decoded.length >= 10) {
+          const [
+            id,
+            orderId,
+            courier,
+            pickup,
+            dropoff,
+            trackingNumber,
+            status,
+            createdAt,
+            pickedUpAt,
+            deliveredAt
+          ] = decoded;
+          
+          return {
+            id,
+            orderId,
+            courier,
+            pickup,
+            dropoff,
+            trackingNumber,
+            status,
+            createdAt,
+            pickedUpAt,
+            deliveredAt
+          };
+        }
+        
+        return decoded[0] || decoded;
+      }
+      
+      throw error;
+    }
   }
 
   static async addCourier(courierAddress) {

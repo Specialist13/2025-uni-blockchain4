@@ -189,7 +189,18 @@ function getMinimalABI(contractName) {
       {
         inputs: [{ name: 'shipmentId', type: 'uint256' }],
         name: 'shipmentById',
-        outputs: [{ components: [{ name: 'id', type: 'uint256' }, { name: 'orderId', type: 'uint256' }, { name: 'courier', type: 'address' }, { components: [{ name: 'name', type: 'string' }, { name: 'line1', type: 'string' }, { name: 'line2', type: 'string' }, { name: 'city', type: 'string' }, { name: 'state', type: 'string' }, { name: 'postalCode', type: 'string' }, { name: 'country', type: 'string' }], name: 'pickup', type: 'tuple' }, { components: [{ name: 'name', type: 'string' }, { name: 'line1', type: 'string' }, { name: 'line2', type: 'string' }, { name: 'city', type: 'string' }, { name: 'state', type: 'string' }, { name: 'postalCode', type: 'string' }, { name: 'country', type: 'string' }], name: 'dropoff', type: 'tuple' }, { name: 'trackingNumber', type: 'uint256' }, { name: 'status', type: 'uint8' }, { name: 'createdAt', type: 'uint256' }, { name: 'pickedUpAt', type: 'uint256' }, { name: 'deliveredAt', type: 'uint256' }], name: '', type: 'tuple' }],
+        outputs: [
+          { name: 'id', type: 'uint256' },
+          { name: 'orderId', type: 'uint256' },
+          { name: 'courier', type: 'address' },
+          { name: 'pickup', components: [{ name: 'name', type: 'string' }, { name: 'line1', type: 'string' }, { name: 'line2', type: 'string' }, { name: 'city', type: 'string' }, { name: 'state', type: 'string' }, { name: 'postalCode', type: 'string' }, { name: 'country', type: 'string' }], type: 'tuple' },
+          { name: 'dropoff', components: [{ name: 'name', type: 'string' }, { name: 'line1', type: 'string' }, { name: 'line2', type: 'string' }, { name: 'city', type: 'string' }, { name: 'state', type: 'string' }, { name: 'postalCode', type: 'string' }, { name: 'country', type: 'string' }], type: 'tuple' },
+          { name: 'trackingNumber', type: 'uint256' },
+          { name: 'status', type: 'uint8' },
+          { name: 'createdAt', type: 'uint256' },
+          { name: 'pickedUpAt', type: 'uint256' },
+          { name: 'deliveredAt', type: 'uint256' }
+        ],
         stateMutability: 'view',
         type: 'function'
       },

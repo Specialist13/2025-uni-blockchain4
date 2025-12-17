@@ -132,7 +132,7 @@ contract CourierContract {
 
     function confirmPickup(uint256 shipmentId) public {
         Shipment storage shipment = shipmentById[shipmentId];
-        require(shipment.courier == msg.sender, "Only assigned courier can pick up");
+        require(shipment.courier == msg.sender || msg.sender == owner, "Only assigned courier or owner can pick up");
         require(shipment.status == ShipmentStatus.Assigned, "Shipment not assigned");
         require(shipment.id != 0, "Shipment does not exist");
 
@@ -144,7 +144,7 @@ contract CourierContract {
 
     function confirmDelivery(uint256 shipmentId) public {
         Shipment storage shipment=shipmentById[shipmentId];
-        require(shipment.courier == msg.sender, "Only assigned courier can confirm delivery");
+        require(shipment.courier == msg.sender || msg.sender == owner, "Only assigned courier or owner can confirm delivery");
         require(shipment.status == ShipmentStatus.InTransit, "Shipment not in transit");
         require(shipment.id != 0, "Shipment does not exist");
 
