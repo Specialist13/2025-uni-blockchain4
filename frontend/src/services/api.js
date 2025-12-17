@@ -15,18 +15,40 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    if (import.meta.env.DEV) {
+      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, {
+        data: config.data,
+        params: config.params,
+      });
+    }
     return config;
   },
   (error) => {
+    if (import.meta.env.DEV) {
+      console.error('[API Request Error]', error);
+    }
     return Promise.reject(error);
   }
 );
 
 api.interceptors.response.use(
   (response) => {
+    if (import.meta.env.DEV) {
+      console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+        status: response.status,
+        data: response.data,
+      });
+    }
     return response;
   },
   (error) => {
+    if (import.meta.env.DEV) {
+      console.error(`[API Response Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}`, {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+    }
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');

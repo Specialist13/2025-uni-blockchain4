@@ -102,3 +102,154 @@
   min-height: 200px;
   color: var(--text-gray);
 }
+
+.loading-spinner {
+  display: inline-block;
+}
+
+.spinner-circle {
+  border: 3px solid var(--light-gray);
+  border-top-color: var(--accent-gray);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner-small .spinner-circle {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.spinner-medium .spinner-circle {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+}
+
+.spinner-large .spinner-circle {
+  width: 60px;
+  height: 60px;
+  border-width: 4px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-unit) * 4);
+}
+
+.skeleton-item {
+  padding: calc(var(--spacing-unit) * 4);
+  background-color: var(--medium-gray);
+  border-radius: 4px;
+}
+
+.skeleton-line {
+  height: 16px;
+  background: linear-gradient(
+    90deg,
+    var(--medium-gray) 0%,
+    var(--light-gray) 50%,
+    var(--medium-gray) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  margin-bottom: calc(var(--spacing-unit) * 2);
+}
+
+.skeleton-title {
+  width: 60%;
+  height: 20px;
+}
+
+.skeleton-text {
+  width: 100%;
+}
+
+.skeleton-text.short {
+  width: 80%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-card {
+  background-color: var(--medium-gray);
+  border: 1px solid var(--light-gray);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.skeleton-image {
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(
+    90deg,
+    var(--medium-gray) 0%,
+    var(--light-gray) 50%,
+    var(--medium-gray) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-content {
+  padding: calc(var(--spacing-unit) * 4);
+}
+
+.form-group input.error,
+.form-group textarea.error,
+.form-group select.error {
+  border-color: #ff6b6b;
+}
+
+.form-group .field-error {
+  color: #ff6b6b;
+  font-size: 14px;
+  margin-top: calc(var(--spacing-unit) * 1);
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .btn-primary,
+  .btn-secondary {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .auth-form {
+    padding: calc(var(--spacing-unit) * 6);
+    margin: calc(var(--spacing-unit) * 2);
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .auth-form {
+    max-width: 500px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .auth-form {
+    max-width: 600px;
+  }
+}
+
+@media (min-width: 1025px) {
+  .auth-form {
+    max-width: 400px;
+  }
+}

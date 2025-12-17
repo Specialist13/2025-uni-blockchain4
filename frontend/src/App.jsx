@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { Web3Provider } from './context/Web3Context.jsx';
 import { ProtectedRoute } from './components/common/ProtectedRoute.jsx';
@@ -12,12 +13,37 @@ import { CreateProductPage } from './pages/CreateProductPage.jsx';
 import { EditProductPage } from './pages/EditProductPage.jsx';
 import { OrdersPage } from './pages/OrdersPage.jsx';
 import { OrderDetailPage } from './pages/OrderDetailPage.jsx';
+import { CourierDashboardPage } from './pages/CourierDashboardPage.jsx';
+import { AvailableShipmentsPage } from './pages/AvailableShipmentsPage.jsx';
+import { MyShipmentsPage } from './pages/MyShipmentsPage.jsx';
 import './App.css';
 
 function App() {
   return (
     <AuthProvider>
       <Web3Provider>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: 'var(--medium-gray)',
+              color: 'var(--white)',
+              border: '1px solid var(--light-gray)',
+            },
+            success: {
+              iconTheme: {
+                primary: '#51cf66',
+                secondary: 'var(--white)',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#ff6b6b',
+                secondary: 'var(--white)',
+              },
+            },
+          }}
+        />
         <Router>
           <div className="App">
             <Routes>
@@ -63,6 +89,30 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courier/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <CourierDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courier/available"
+                element={
+                  <ProtectedRoute>
+                    <AvailableShipmentsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courier/shipments"
+                element={
+                  <ProtectedRoute>
+                    <MyShipmentsPage />
                   </ProtectedRoute>
                 }
               />
