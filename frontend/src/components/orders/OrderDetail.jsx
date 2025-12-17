@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { OrderStatusBadge } from './OrderStatusBadge.jsx';
 import { FundOrderModal } from './FundOrderModal.jsx';
 import { AddressForm } from './AddressForm.jsx';
+import { ShipmentDetail } from '../shipments/ShipmentDetail.jsx';
 import { formatters } from '../../utils/formatters.js';
 import { orderService } from '../../services/orderService.js';
 
@@ -169,22 +170,7 @@ export function OrderDetail({ order, onUpdate }) {
         {order.shipment && (
           <div className="order-info-section">
             <h2>Shipment Information</h2>
-            <div className="info-grid">
-              <div className="info-item">
-                <strong>Tracking Number:</strong>
-                <span>{order.shipment.trackingNumber}</span>
-              </div>
-              <div className="info-item">
-                <strong>Status:</strong>
-                <span>{order.shipment.status}</span>
-              </div>
-              {order.shipment.courier && (
-                <div className="info-item">
-                  <strong>Courier:</strong>
-                  <span>{formatters.formatAddress(order.shipment.courier)}</span>
-                </div>
-              )}
-            </div>
+            <ShipmentDetail shipment={order.shipment} />
           </div>
         )}
 
