@@ -177,3 +177,15 @@ Buyer Confirms → Payment Released → Fees Distributed → Complete
 ```
 
 The entire process is orchestrated through smart contracts ensuring transparency, security, and automated execution of each step without requiring manual intervention from the marketplace operator.
+
+---
+
+## Testing
+
+### Local Testing
+
+![Testing on Local](docs/testing_on_local.png)
+
+### Remote Testing
+
+![Testing on Remote](docs/testing_on_remote.png)
