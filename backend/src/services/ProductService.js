@@ -26,8 +26,8 @@ export class ProductService {
       throw new Error('Price must be greater than 0');
     }
 
-    if (imageUrl && imageUrl.length > 500) {
-      throw new Error('Image URL must be 500 characters or less');
+    if (imageUrl && imageUrl.length > 1000) {
+      throw new Error('Image URL must be 1000 characters or less');
     }
 
     if (imageUrls && !Array.isArray(imageUrls)) {

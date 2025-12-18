@@ -22,7 +22,7 @@ export const Product = new EntitySchema({
     },
     imageUrl: {
       type: 'varchar',
-      length: 500,
+      length: 1000,
       nullable: true
     },
     imageUrls: {

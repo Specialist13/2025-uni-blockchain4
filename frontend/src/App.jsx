@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { Web3Provider } from './context/Web3Context.jsx';
 import { ProtectedRoute } from './components/common/ProtectedRoute.jsx';
+import { UserOnlyRoute } from './components/common/UserOnlyRoute.jsx';
 import { Header } from './components/layout/Header.jsx';
 import { HomePage } from './pages/HomePage.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
@@ -17,6 +18,8 @@ import { OrderDetailPage } from './pages/OrderDetailPage.jsx';
 import { CourierDashboardPage } from './pages/CourierDashboardPage.jsx';
 import { AvailableShipmentsPage } from './pages/AvailableShipmentsPage.jsx';
 import { MyShipmentsPage } from './pages/MyShipmentsPage.jsx';
+import { ConfirmPickupPage } from './pages/ConfirmPickupPage.jsx';
+import { ConfirmDeliveryPage } from './pages/ConfirmDeliveryPage.jsx';
 import './App.css';
 
 function App() {
@@ -57,33 +60,33 @@ function App() {
               <Route
                 path="/products/create"
                 element={
-                  <ProtectedRoute>
+                  <UserOnlyRoute>
                     <CreateProductPage />
-                  </ProtectedRoute>
+                  </UserOnlyRoute>
                 }
               />
               <Route
                 path="/products/:id/edit"
                 element={
-                  <ProtectedRoute>
+                  <UserOnlyRoute>
                     <EditProductPage />
-                  </ProtectedRoute>
+                  </UserOnlyRoute>
                 }
               />
               <Route
                 path="/orders"
                 element={
-                  <ProtectedRoute>
+                  <UserOnlyRoute>
                     <OrdersPage />
-                  </ProtectedRoute>
+                  </UserOnlyRoute>
                 }
               />
               <Route
                 path="/orders/:id"
                 element={
-                  <ProtectedRoute>
+                  <UserOnlyRoute>
                     <OrderDetailPage />
-                  </ProtectedRoute>
+                  </UserOnlyRoute>
                 }
               />
               <Route
@@ -115,6 +118,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MyShipmentsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courier/pickup"
+                element={
+                  <ProtectedRoute>
+                    <ConfirmPickupPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/courier/delivery"
+                element={
+                  <ProtectedRoute>
+                    <ConfirmDeliveryPage />
                   </ProtectedRoute>
                 }
               />

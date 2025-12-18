@@ -214,9 +214,27 @@ export class OrderService {
       throw new Error('Order ID is required');
     }
 
-    const order = await OrderRepository.findById(id);
+    let order = await OrderRepository.findById(id);
     if (!order) {
       throw new Error('Order not found');
+    }
+
+    try {
+      const blockchainOrder = await MarketplaceContractService.getOrder(id);
+      if (blockchainOrder && Number(blockchainOrder.id) !== 0) {
+        order = await OrderRepository.syncFromBlockchain(blockchainOrder);
+      }
+    } catch (error) {
+      console.warn(`Failed to sync order ${id} from blockchain:`, error.message);
+    }
+
+    if (order.shipment && order.shipment.id) {
+      try {
+        await ShipmentService.syncShipmentFromBlockchain(order.shipment.id);
+        order = await OrderRepository.findById(id);
+      } catch (error) {
+        console.warn(`Failed to sync shipment ${order.shipment.id} from blockchain:`, error.message);
+      }
     }
 
     return order;
@@ -461,6 +479,10 @@ export class OrderService {
     
     if (order.status !== OrderStatus.Delivered && currentBlockchainStatus === OrderStatus.Delivered) {
       order = await OrderRepository.syncFromBlockchain(blockchainOrder);
+    }
+
+    if (!buyerPrivateKey) {
+      buyerPrivateKey = await getPrivateKeyForAddress(order.buyer);
     }
 
     const txResult = await MarketplaceContractService.confirmReceipt(orderId, buyerPrivateKey);

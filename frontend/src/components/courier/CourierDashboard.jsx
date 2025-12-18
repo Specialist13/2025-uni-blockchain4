@@ -49,8 +49,11 @@ export function CourierDashboard() {
           <Link to="/courier/available" className="btn-primary">
             View Available Shipments
           </Link>
-          <Link to="/courier/shipments" className="btn-secondary">
-            My Shipments
+          <Link to="/courier/pickup" className="btn-primary">
+            Confirm Pickup
+          </Link>
+          <Link to="/courier/delivery" className="btn-primary">
+            Confirm Delivery
           </Link>
         </div>
       </div>

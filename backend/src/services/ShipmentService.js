@@ -222,7 +222,23 @@ export class ShipmentService {
 
   static async listAvailableShipments() {
     const shipments = await ShipmentRepository.findAvailableForCourier();
-    return shipments;
+    
+    const syncedShipments = [];
+    for (const shipment of shipments) {
+      try {
+        const syncedShipment = await this.syncShipmentFromBlockchain(shipment.id);
+        if (syncedShipment.status === ShipmentStatus.Assigned) {
+          syncedShipments.push(syncedShipment);
+        }
+      } catch (error) {
+        console.warn(`Failed to sync shipment ${shipment.id} from blockchain:`, error.message);
+        if (shipment.status === ShipmentStatus.Assigned) {
+          syncedShipments.push(shipment);
+        }
+      }
+    }
+    
+    return syncedShipments;
   }
 
   static async listCourierShipments(courierAddress, options = {}) {
@@ -231,6 +247,23 @@ export class ShipmentService {
     }
 
     const { status, activeOnly } = options;
+
+    let shipments;
+    if (activeOnly) {
+      shipments = await ShipmentRepository.findActiveByCourier(courierAddress);
+    } else if (status) {
+      shipments = await ShipmentRepository.findByCourierAndStatus(courierAddress, status);
+    } else {
+      shipments = await ShipmentRepository.findAssignedToCourier(courierAddress);
+    }
+
+    for (const shipment of shipments) {
+      try {
+        await this.syncShipmentFromBlockchain(shipment.id);
+      } catch (error) {
+        console.warn(`Failed to sync shipment ${shipment.id} from blockchain:`, error.message);
+      }
+    }
 
     if (activeOnly) {
       return await ShipmentRepository.findActiveByCourier(courierAddress);
@@ -249,6 +282,16 @@ export class ShipmentService {
     }
 
     const allShipments = await ShipmentRepository.findAssignedToCourier(courierAddress);
+    
+    for (const shipment of allShipments) {
+      try {
+        await this.syncShipmentFromBlockchain(shipment.id);
+      } catch (error) {
+        console.warn(`Failed to sync shipment ${shipment.id} from blockchain:`, error.message);
+      }
+    }
+
+    const syncedAllShipments = await ShipmentRepository.findAssignedToCourier(courierAddress);
     const activeShipments = await ShipmentRepository.findActiveByCourier(courierAddress);
     const assignedShipments = await ShipmentRepository.findByCourierAndStatus(courierAddress, ShipmentStatus.Assigned);
     const inTransitShipments = await ShipmentRepository.findByCourierAndStatus(courierAddress, ShipmentStatus.InTransit);
@@ -256,14 +299,14 @@ export class ShipmentService {
 
     return {
       stats: {
-        total: allShipments.length,
+        total: syncedAllShipments.length,
         active: activeShipments.length,
         assigned: assignedShipments.length,
         inTransit: inTransitShipments.length,
         delivered: deliveredShipments.length
       },
       activeShipments,
-      recentShipments: allShipments.slice(0, 10)
+      recentShipments: syncedAllShipments.slice(0, 10)
     };
   }
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { OrderStatusBadge } from './OrderStatusBadge.jsx';
 import { FundOrderModal } from './FundOrderModal.jsx';
+import { ConfirmReceiptModal } from './ConfirmReceiptModal.jsx';
 import { AddressForm } from './AddressForm.jsx';
 import { ShipmentDetail } from '../shipments/ShipmentDetail.jsx';
 import { formatters } from '../../utils/formatters.js';
@@ -12,6 +13,7 @@ export function OrderDetail({ order, onUpdate }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showFundModal, setShowFundModal] = useState(false);
+  const [showConfirmReceiptModal, setShowConfirmReceiptModal] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,23 +53,14 @@ export function OrderDetail({ order, onUpdate }) {
     }
   };
 
-  const handleConfirmReceipt = async () => {
-    if (!window.confirm('Confirm that you have received the order?')) {
-      return;
-    }
+  const handleConfirmReceipt = () => {
+    setShowConfirmReceiptModal(true);
+  };
 
-    setLoading(true);
-    setError('');
-
-    try {
-      await orderService.confirmReceipt(order.id);
-      if (onUpdate) {
-        onUpdate();
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to confirm receipt');
-    } finally {
-      setLoading(false);
+  const handleConfirmReceiptSuccess = () => {
+    setShowConfirmReceiptModal(false);
+    if (onUpdate) {
+      onUpdate();
     }
   };
 
@@ -196,8 +189,8 @@ export function OrderDetail({ order, onUpdate }) {
           )}
 
           {isBuyer && order.status === 'Delivered' && (
-            <button onClick={handleConfirmReceipt} className="btn-primary btn-large" disabled={loading}>
-              {loading ? 'Confirming...' : 'Confirm Receipt'}
+            <button onClick={handleConfirmReceipt} className="btn-primary btn-large">
+              Confirm Receipt
             </button>
           )}
 
@@ -214,6 +207,14 @@ export function OrderDetail({ order, onUpdate }) {
           order={order}
           onClose={() => setShowFundModal(false)}
           onSuccess={handleFundSuccess}
+        />
+      )}
+
+      {showConfirmReceiptModal && (
+        <ConfirmReceiptModal
+          order={order}
+          onClose={() => setShowConfirmReceiptModal(false)}
+          onSuccess={handleConfirmReceiptSuccess}
         />
       )}
 

@@ -3,12 +3,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useWeb3 } from '../../context/Web3Context.jsx';
 import { formatters } from '../../utils/formatters.js';
+import { CourierHeader } from './CourierHeader.jsx';
 
 export function Header() {
   const { user, isAuthenticated, logout, isCourier } = useAuth();
   const { account, connectWallet, isConnected } = useWeb3();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  if (isCourier()) {
+    return <CourierHeader />;
+  }
 
   const handleLogout = async () => {
     await logout();
@@ -42,32 +47,13 @@ export function Header() {
 
           {isAuthenticated() ? (
             <>
-              {isCourier() ? (
-                <>
-                  <Link
-                    to="/courier/dashboard"
-                    className="nav-link"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Courier Dashboard
-                  </Link>
-                  <Link
-                    to="/courier/shipments"
-                    className="nav-link"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    My Shipments
-                  </Link>
-                </>
-              ) : (
-                <Link
-                  to="/orders"
-                  className="nav-link"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  My Orders
-                </Link>
-              )}
+              <Link
+                to="/orders"
+                className="nav-link"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                My Orders
+              </Link>
               <Link
                 to="/products/create"
                 className="nav-link"
